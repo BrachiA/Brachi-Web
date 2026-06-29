@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ברכי פיטוסי | בניית אתרים מקצועית</title>
+  <meta name="description" content="בניית אתרים מקצועית לעסקים, עצמאיים ויוצרים. מהיר, יפה, עם SEO מיום 1. ברכי פיטוסי - Web Development." />
+  <meta property="og:title" content="ברכי פיטוסי | בניית אתרים מקצועית" />
+  <meta property="og:description" content="בניית אתרים לעסקים, עצמאיים ויוצרים. מהיר, יפה, SEO מיום 1." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://brachipitosi.com" />
+  <meta property="og:locale" content="he_IL" />
+  <meta name="google-site-verification" content="WN0U4_T0rov420Du21pKHGFtO3W4jrk-tfin-neOrjc" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    "name": "ברכי פיטוסי - Web Development",
+    "description": "בניית אתרים מקצועית לעסקים, עצמאיים ויוצרים",
+    "telephone": "+972547568966",
+    "email": "Baloo532004@gmail.com",
+    "address": { "@type": "PostalAddress", "addressCountry": "IL" },
+    "url": "https://brachipitosi.com",
+    "priceRange": "₪₪"
+  }
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --lilac-light: #C9B8F0;
+      --lilac-mid:   #7F77DD;
+      --lilac-dark:  #3C3489;
+      --blue-light:  #85B7EB;
+      --blue-mid:    #378ADD;
+      --blue-dark:   #185FA5;
+      --bg:          #F8F7FF;
+      --white:       #FFFFFF;
+      --text-dark:   #1a1040;
+      --text-mid:    #3C3489;
+      --text-muted:  #7F77DD;
+      --border:      rgba(201,184,240,0.35);
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Heebo', sans-serif; background: var(--bg); color: var(--text-dark); overflow-x: hidden; }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      background: rgba(248,247,255,0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 5%; height: 64px;
+      display: flex; align-items: center; justify-content: flex-start; gap: 0;
+    }
+    .nav-logo {
+      display: flex; flex-direction: column; align-items: center;
+      text-decoration: none; margin-left: 24px;
+    }
+    .nav-logo .bp { font-family: Georgia, serif; font-size: 26px; font-weight: 700; line-height: 1; letter-spacing: -1px; }
+    .nav-logo .bp .b { color: var(--lilac-light); }
+    .nav-logo .bp .p { color: var(--lilac-mid); }
+    .nav-logo .bp-sub { font-size: 7px; color: var(--lilac-mid); letter-spacing: 4px; font-weight: 500; }
+    .nav-links { display: flex; gap: 24px; list-style: none; margin-left: 24px; }
+    .nav-links a { font-size: 14px; color: var(--text-mid); text-decoration: none; font-weight: 500; transition: color 0.2s; }
+    .nav-links a:hover { color: var(--lilac-mid); }
+    .nav-cta {
+      background: var(--lilac-mid); color: var(--white) !important;
+      padding: 8px 20px; border-radius: 20px;
+      font-size: 13px !important; font-weight: 600 !important;
+      transition: background 0.2s !important; text-decoration: none;
+    }
+    .nav-cta:hover { background: var(--lilac-dark) !important; }
+
+    /* ── HERO ── */
+    #hero {
+      min-height: 100vh; display: flex; align-items: center;
+      justify-content: center; text-align: center;
+      padding: 100px 5% 60px; position: relative; overflow: hidden;
+    }
+    .hero-bg-circle { position: absolute; border-radius: 50%; pointer-events: none; }
+    .hero-bg-circle.c1 { width:500px; height:500px; top:-150px; right:-150px; border:1px solid var(--lilac-light); opacity:0.2; }
+    .hero-bg-circle.c2 { width:350px; height:350px; bottom:-100px; left:-100px; border:1px solid var(--blue-light); opacity:0.2; }
+    .hero-bg-circle.c3 { width:200px; height:200px; top:50%; left:50%; transform:translate(-50%,-50%); border:1px solid var(--lilac-light); opacity:0.1; }
+    .hero-content { position: relative; max-width: 680px; }
+    .hero-tag {
+      display: inline-block; background: #EEEDFE; border: 1px solid var(--lilac-light);
+      border-radius: 20px; padding: 5px 18px; font-size: 12px;
+      color: var(--lilac-mid); letter-spacing: 2px; font-weight: 600; margin-bottom: 28px;
+    }
+    .hero-logo { display: flex; flex-direction: column; align-items: center; margin-bottom: 32px; }
+    .hero-logo .bp-big { font-family: Georgia, serif; font-size: 80px; font-weight: 700; line-height: 1; letter-spacing: -4px; }
+    .hero-logo .bp-big .b { color: var(--lilac-light); }
+    .hero-logo .bp-big .p { color: var(--lilac-mid); }
+    .hero-logo .divider-line { display: flex; align-items: center; gap: 10px; width: 260px; margin: 10px 0 8px; }
+    .hero-logo .divider-line .line { flex: 1; height: 1px; }
+    .hero-logo .divider-line .line.right { background: linear-gradient(to left, #C9B8F0, transparent); }
+    .hero-logo .divider-line .line.left  { background: linear-gradient(to right, #C9B8F0, transparent); }
+    .hero-logo .divider-line .dot { width:5px; height:5px; border-radius:50%; background:var(--lilac-light); flex-shrink:0; }
+    .hero-logo .name { font-size: 14px; color: var(--lilac-mid); letter-spacing: 7px; font-weight: 500; margin-bottom: 4px; }
+    .hero-logo .tagline-small { font-size: 10px; color: #AFA9EC; letter-spacing: 3px; }
+    .hero-headline { font-size: clamp(26px,4vw,36px); font-weight: 700; line-height: 1.4; margin-bottom: 16px; }
+    .hero-sub { font-size: 16px; color: #7F77DD; font-weight: 400; line-height: 1.7; margin-bottom: 36px; max-width: 480px; margin-right: auto; margin-left: auto; }
+    .hero-btns { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+    .btn-primary { display: inline-flex; align-items: center; gap: 8px; background: var(--lilac-mid); color: var(--white); padding: 13px 28px; border-radius: 26px; font-size: 15px; font-weight: 600; text-decoration: none; transition: background 0.2s, transform 0.15s; }
+    .btn-primary:hover { background: var(--lilac-dark); transform: translateY(-1px); }
+    .btn-secondary { display: inline-flex; align-items: center; gap: 8px; background: var(--white); color: var(--lilac-mid); padding: 13px 28px; border-radius: 26px; font-size: 15px; font-weight: 600; text-decoration: none; border: 1.5px solid var(--lilac-light); transition: border-color 0.2s, color 0.2s, transform 0.15s; }
+    .btn-secondary:hover { border-color: var(--lilac-mid); color: var(--lilac-dark); transform: translateY(-1px); }
+
+    /* ── SECTIONS ── */
+    section { padding: 80px 5%; }
+    .section-inner { max-width: 1000px; margin: 0 auto; }
+    .section-tag { display: inline-block; font-size: 11px; color: var(--blue-mid); letter-spacing: 3px; font-weight: 600; margin-bottom: 12px; text-transform: uppercase; }
+    .section-title { font-size: clamp(24px,3vw,32px); font-weight: 700; color: var(--text-dark); margin-bottom: 10px; }
+    .section-title span { color: var(--lilac-mid); }
+    .section-desc { font-size: 15px; color: var(--text-muted); line-height: 1.7; margin-bottom: 48px; max-width: 520px; }
+
+    /* ── SERVICES ── */
+    #services { background: var(--white); }
+    .services-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; }
+    .service-card { background: var(--bg); border: 1px solid var(--border); border-radius: 14px; padding: 28px 24px; transition: box-shadow 0.2s, transform 0.2s; position: relative; overflow: hidden; }
+    .service-card::before { content:''; position:absolute; top:0; right:0; left:0; height:3px; border-radius:14px 14px 0 0; }
+    .service-card.purple::before { background: var(--lilac-mid); }
+    .service-card.blue::before   { background: var(--blue-mid); }
+    .service-card.light::before  { background: var(--lilac-light); }
+    .service-card:hover { box-shadow: 0 8px 24px rgba(127,119,221,0.12); transform: translateY(-3px); }
+    .service-icon { width:44px; height:44px; border-radius:10px; display:flex; align-items:center; justify-content:center; margin-bottom:16px; }
+    .service-icon.purple { background: #EEEDFE; }
+    .service-icon.blue   { background: #E6F1FB; }
+    .service-icon.light  { background: #F3F0FE; }
+    .service-icon svg { width: 22px; height: 22px; }
+    .service-title { font-size: 17px; font-weight: 700; color: var(--text-dark); margin-bottom: 8px; }
+    .service-desc  { font-size: 14px; color: var(--text-muted); line-height: 1.7; }
+
+    /* ── WHY ── */
+    #why { background: var(--bg); }
+    .why-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; direction: ltr; }
+    .why-card { background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 32px 24px; text-align: center; min-height: 160px; display: flex; flex-direction: column; justify-content: center; direction: rtl; }
+    .why-num { font-family: Georgia, serif; font-size: 36px; font-weight: 700; color: var(--lilac-light); line-height: 1; margin-bottom: 6px; white-space: nowrap; }
+    .why-num span { color: var(--lilac-mid); font-size: 20px; }
+    .why-label { font-size: 14px; font-weight: 600; color: var(--text-dark); margin-bottom: 6px; }
+    .why-sub { font-size: 12px; color: var(--text-muted); line-height: 1.6; }
+
+    /* ── CONTACT ── */
+    #contact { background: var(--lilac-dark); position: relative; overflow: hidden; }
+    .contact-bg-circle { position:absolute; border-radius:50%; border:1px solid rgba(201,184,240,0.15); pointer-events:none; }
+    .contact-bg-circle.c1 { width:400px; height:400px; top:-200px; right:-100px; }
+    .contact-bg-circle.c2 { width:300px; height:300px; bottom:-150px; left:-80px; }
+    #contact .section-tag { color: var(--lilac-light); }
+    #contact .section-title { color: var(--white); }
+    #contact .section-title span { color: var(--lilac-light); }
+    #contact .section-desc { color: rgba(201,184,240,0.8); }
+    .contact-cards { display: flex; flex-direction: column; gap: 14px; max-width: 480px; }
+    .contact-card { background: rgba(255,255,255,0.07); border: 1px solid rgba(201,184,240,0.25); border-radius: 14px; padding: 16px 20px; display: flex; align-items: center; gap: 16px; text-decoration: none; transition: background 0.2s, transform 0.15s; }
+    .contact-card:hover { background: rgba(255,255,255,0.12); transform: translateX(-4px); }
+    .contact-card-icon { width:44px; height:44px; border-radius:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .contact-card-icon.purple { background: rgba(201,184,240,0.15); }
+    .contact-card-icon.blue   { background: rgba(133,183,235,0.15); }
+    .contact-card-icon svg { width: 22px; height: 22px; }
+    .contact-card-text .label { font-size:11px; color:rgba(201,184,240,0.6); margin-bottom:3px; font-weight:500; }
+    .contact-card-text .value { font-size:15px; color:var(--white); font-weight:600; }
+    .contact-card-text .name  { font-size:11px; color:var(--lilac-light); margin-top:1px; }
+    .whatsapp-btn { display:inline-flex; align-items:center; gap:10px; background:#25D366; color:var(--white); padding:14px 30px; border-radius:28px; font-size:16px; font-weight:700; text-decoration:none; margin-top:28px; transition:background 0.2s, transform 0.15s; }
+    .whatsapp-btn:hover { background:#1ebe5c; transform:translateY(-2px); }
+
+    /* ── FOOTER ── */
+    footer { background: #1a1040; padding: 28px 5%; text-align: center; }
+    .footer-logo { display:flex; flex-direction:column; align-items:center; margin-bottom:14px; }
+    .footer-logo .bp { font-family:Georgia,serif; font-size:28px; font-weight:700; letter-spacing:-1px; }
+    .footer-logo .bp .b { color: var(--lilac-light); }
+    .footer-logo .bp .p { color: var(--lilac-mid); }
+    .footer-logo .footer-name { font-size:9px; color:var(--lilac-mid); letter-spacing:5px; margin-top:2px; }
+    footer p { font-size:12px; color:rgba(201,184,240,0.4); }
+
+    /* ── REVEAL ── */
+    .reveal { opacity:0; transform:translateY(24px); transition:opacity 0.6s ease, transform 0.6s ease; }
+    .reveal.visible { opacity:1; transform:translateY(0); }
+
+    /* ── MOBILE ── */
+    @media (max-width: 600px) {
+      .nav-links { display: none; }
+      .hero-logo .bp-big { font-size: 56px; }
+      section { padding: 60px 4%; }
+      .hero-btns { flex-direction: column; align-items: center; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="#hero" class="nav-logo">
+    <div class="bp"><span class="b">B</span><span class="p">P</span></div>
+    <div class="bp-sub">WEB DEVELOPMENT</div>
+  </a>
+  <ul class="nav-links">
+    <li><a href="#services">שירותים</a></li>
+    <li><a href="#why">למה אני</a></li>
+  </ul>
+  <a href="#contact" class="nav-cta">בואו נדבר</a>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="hero-bg-circle c1"></div>
+  <div class="hero-bg-circle c2"></div>
+  <div class="hero-bg-circle c3"></div>
+  <div class="hero-content">
+    <div class="hero-tag">WEB DEVELOPMENT · ישראל</div>
+    <div class="hero-logo">
+      <div class="bp-big"><span class="b">B</span><span class="p">P</span></div>
+      <div class="divider-line">
+        <div class="line right"></div>
+        <div class="dot"></div>
+        <div class="line left"></div>
+      </div>
+      <div class="name">BRACHI PITOSI</div>
+      <div class="tagline-small">WEB DEVELOPMENT</div>
+    </div>
+    <h1 class="hero-headline">
+      <span style="color:var(--lilac-mid);">אתר שעובד בשבילך</span>
+    </h1>
+    <p class="hero-sub">
+      בניית אתרים מקצועית לעסקים, עצמאיים ויוצרים.<br/>
+      מהיר, יפה, עם SEO מיום 1 — ושיחת התאמה חינם.
+    </p>
+    <div class="hero-btns">
+      <a href="https://wa.me/972547568966" class="btn-primary" target="_blank">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.5 10.81 19.79 19.79 0 01.46 2.18 2 2 0 012.44 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 7.91a16 16 0 006.17 6.17l1.27-.78a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+        שיחת התאמה חינם
+      </a>
+      <a href="#services" class="btn-secondary">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg>
+        מה אני מציעה
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- SERVICES -->
+<section id="services">
+  <div class="section-inner">
+    <span class="section-tag reveal">שירותים</span>
+    <h2 class="section-title reveal">מה אני בונה <span>בשבילך</span></h2>
+    <p class="section-desc reveal">כל אתר נבנה בהתאמה אישית — לא תבנית, לא קיצורי דרך.</p>
+    <div class="services-grid">
+      <div class="service-card purple reveal">
+        <div class="service-icon purple">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#7F77DD" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+        </div>
+        <div class="service-title">אתר לעסק</div>
+        <div class="service-desc">חנות, מסעדה, ספא, קליניקה — אתר שמציג אתכם כמו שמגיע ומכניס לקוחות חדשים.</div>
+      </div>
+      <div class="service-card blue reveal">
+        <div class="service-icon blue">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#378ADD" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </div>
+        <div class="service-title">אתר לעצמאי</div>
+        <div class="service-desc">רופא, מטפל, יועץ — אתר מקצועי שבונה אמון ומביא פניות ישירות לטלפון שלך.</div>
+      </div>
+      <div class="service-card light reveal">
+        <div class="service-icon light">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#C9B8F0" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        </div>
+        <div class="service-title">אתר לאמן ויוצר</div>
+        <div class="service-desc">מוזיקאי, מעצב, צלם — פורטפוליו שמספר את הסיפור שלך ומוכר את העבודה שלך.</div>
+      </div>
+      <div class="service-card purple reveal">
+        <div class="service-icon purple">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#7F77DD" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        </div>
+        <div class="service-title">SEO ונראות בגוגל</div>
+        <div class="service-desc">כל אתר שאני בונה מגיע עם SEO טכני, מבנה נכון ו-meta tags — מוכן לגוגל מיום 1.</div>
+      </div>
+      <div class="service-card blue reveal">
+        <div class="service-icon blue">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#378ADD" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg>
+        </div>
+        <div class="service-title">מובייל ומהירות</div>
+        <div class="service-desc">86% מהגולשים מגיעים מהטלפון. כל אתר מותאם לנייד ועובר בדיקת מהירות.</div>
+      </div>
+      <div class="service-card light reveal">
+        <div class="service-icon light">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#AFA9EC" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+        </div>
+        <div class="service-title">תחזוקה ו-Support</div>
+        <div class="service-desc">לא נעלמת אחרי השקה — זמינה לעדכונים, שינויים ושאלות גם חודשים אחרי.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- WHY -->
+<section id="why">
+  <div class="section-inner">
+    <span class="section-tag reveal">למה ברכי</span>
+    <h2 class="section-title reveal">מה <span>מייחד</span> אותי</h2>
+    <p class="section-desc reveal">לא סוכנות, לא תבנית — אדם אחד שאכפת לה מהתוצאה.</p>
+    <div class="why-grid">
+      <div class="why-card reveal">
+        <div class="why-num">שבוע</div>
+        <div class="why-label">זמן אספקה</div>
+        <div class="why-sub">מוכן מהר, לא מחכים חודשים</div>
+      </div>
+      <div class="why-card reveal">
+        <div class="why-num">100<span>%</span></div>
+        <div class="why-label">התאמה אישית</div>
+        <div class="why-sub">נבנה מאפס, לא תבנית מוכנה</div>
+      </div>
+      <div class="why-card reveal">
+        <div class="why-num">∞</div>
+        <div class="why-label">זמינות</div>
+        <div class="why-sub">תמיד זמינה, תמיד עונה</div>
+      </div>
+      <div class="why-card reveal">
+        <div class="why-num"><span style="font-size:28px;">₪</span>0</div>
+        <div class="why-label">ייעוץ ראשוני</div>
+        <div class="why-sub">שיחת התאמה חינם, ללא התחייבות</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CONTACT -->
+<section id="contact">
+  <div class="contact-bg-circle c1"></div>
+  <div class="contact-bg-circle c2"></div>
+  <div class="section-inner" style="position:relative;">
+    <span class="section-tag reveal">צור קשר</span>
+    <h2 class="section-title reveal">בואו <span>נדבר</span></h2>
+    <p class="section-desc reveal">שיחת התאמה חינם — ספרו לי על העסק שלכם ואני אגיד לכם בדיוק מה אתר יעשה בשבילכם.</p>
+    <div class="contact-cards">
+      <a href="https://wa.me/972547568966" class="contact-card reveal" target="_blank">
+        <div class="contact-card-icon purple">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#C9B8F0" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.5 10.81 19.79 19.79 0 01.46 2.18 2 2 0 012.44 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 7.91a16 16 0 006.17 6.17l1.27-.78a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+        </div>
+        <div class="contact-card-text">
+          <div class="label">WhatsApp</div>
+          <div class="value">054-756-8966</div>
+          <div class="name">ברכי פיטוסי</div>
+        </div>
+      </a>
+      <a href="mailto:Baloo532004@gmail.com" class="contact-card reveal">
+        <div class="contact-card-icon blue">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#85B7EB" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 7l10 7 10-7"/></svg>
+        </div>
+        <div class="contact-card-text">
+          <div class="label">Email</div>
+          <div class="value">Baloo532004@gmail.com</div>
+          <div class="name">ברכי פיטוסי</div>
+        </div>
+      </a>
+    </div>
+    <a href="https://wa.me/972547568966" class="whatsapp-btn reveal" target="_blank">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+      התחילו עם שיחת התאמה חינם
+    </a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">
+    <div class="bp"><span class="b">B</span><span class="p">P</span></div>
+    <div class="footer-name">BRACHI PITOSI</div>
+  </div>
+  <p>© 2026 ברכי פיטוסי · Web Development · כל הזכויות שמורות</p>
+</footer>
+
+<script>
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+  }, { threshold: 0.12 });
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+</script>
+</body>
+</html>
