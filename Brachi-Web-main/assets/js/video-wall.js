@@ -5,7 +5,7 @@ import { CATEGORY_LABEL } from './media-manifest.js';
 /**
  * @typedef {{ id:string, title:string, category:'reel'|'story'|'deck', tool:string,
  *   src?:string, cloudinaryId?:string, poster?:string, blurhash?:string }} AiVideo
- * @typedef {{ cloudinaryCloud?:string, r2Base?:string }} MediaConfig
+ * @typedef {{ cloudinaryCloud?:string, r2PublicBase?:string, r2Base?:string }} MediaConfig
  */
 
 export function videoUrl(v, cfg) {
@@ -14,7 +14,8 @@ export function videoUrl(v, cfg) {
   }
   if (!v.src) return null;
   if (/^https?:\/\//.test(v.src) || v.src.startsWith('/')) return v.src;
-  return cfg.r2Base ? cfg.r2Base.replace(/\/?$/, '/') + v.src.replace(/^\//, '') : v.src;
+  const base = cfg.r2PublicBase || cfg.r2Base;
+  return base ? base.replace(/\/?$/, '/') + v.src.replace(/^\//, '') : v.src;
 }
 
 export function posterUrl(v, cfg) {

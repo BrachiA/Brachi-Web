@@ -1,11 +1,11 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // The default video manifest. Since v2.1 videos are managed through the on-site editor (lock icon in the footer),
-// which publishes videos-manifest.json to Google Cloud Storage. This file is the fallback when nothing has been published.
+// which publishes videos-manifest.json to Cloudflare R2. This file is the fallback when nothing has been published.
 //
 // Add a video in one of three ways (one per entry):
 //   1. Cloudinary: set mediaConfig.cloudinaryCloud once, then put the public ID in cloudinaryId.
 //      The address is built automatically with f_auto,q_auto,vc_auto (the best format and codec for each device).
-//   2. Cloudflare R2 / any CDN: set mediaConfig.r2Base once, then put the file path in src.
+//   2. Cloudflare R2: set mediaConfig.r2PublicBase once, then put the file path (key) in src.
 //   3. A full URL: put the full address in src (https://...).
 //
 // poster: a light preview image (AVIF/WebP, about 360px wide). With Cloudinary it is generated automatically.
@@ -15,11 +15,11 @@
 
 export const mediaConfig = {
   cloudinaryCloud: '',   // e.g. 'brachi-studio'
-  r2Base: '',            // e.g. 'https://media.brachi.dev/'
-  // Google Cloud Storage: once set, the site reads the video list published from the editor
-  // at https://storage.googleapis.com/<gcsBucket>/<gcsPrefix>videos-manifest.json
-  gcsBucket: '',         // e.g. 'brachi-videos'
-  gcsPrefix: 'brachi-web/',
+  // Cloudflare R2: once r2PublicBase is set, the site reads the video list published from the editor
+  // at <r2PublicBase>/<r2Prefix>videos-manifest.json (the bucket needs CORS GET for the site's origin).
+  r2Bucket: 'brachi2026',
+  r2PublicBase: '',      // e.g. 'https://pub-xxxxxx.r2.dev' (no trailing /)
+  r2Prefix: '',
 };
 
 /** @type {import('./video-wall.js').AiVideo[]} */
