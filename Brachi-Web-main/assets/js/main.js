@@ -71,7 +71,10 @@ function render({ room, prev, anchor, changed, cause }) {
 
   if (query) {
     const style = new URLSearchParams(query).get('style');
-    if (style && STYLES[style]) chooseStyle(style, { scroll: false });
+    if (style && STYLES[style]) {
+      chooseStyle(style, { scroll: false });
+      ensure('web').then((c) => c.select && c.select(style));
+    }
   }
 
   requestAnimationFrame(() => {

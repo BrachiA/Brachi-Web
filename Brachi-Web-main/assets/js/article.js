@@ -32,6 +32,7 @@
     const sync = () => { toc.open = wide.matches; };
     sync();
     wide.addEventListener('change', sync);
+    toc.addEventListener('toggle', () => { if (wide.matches && !toc.open) toc.open = true; });
     list.addEventListener('click', (e) => {
       if (e.target.closest('a') && !wide.matches) toc.open = false;
     });

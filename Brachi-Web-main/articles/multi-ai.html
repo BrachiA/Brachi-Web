@@ -12,9 +12,8 @@
 <meta property="og:description" content="תוסף VS Code שמתזמר צוות של מודלי שפה, עם אכיפה בקוד ולא בפרומפט. מאמר עומק על התכנון, מקרי הקצה והבדיקות.">
 <meta property="og:url" content="https://brachi-web.vercel.app/articles/multi-ai.html">
 <meta name="theme-color" content="#ECEEE9">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono&family=IBM+Plex+Sans+Hebrew:wght@400;500;600&family=Karantina:wght@700&display=swap">
+<link rel="preload" href="/assets/fonts/ibm-plex-sans-hebrew-400-hebrew.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/css/fonts.css">
 <link rel="stylesheet" href="/assets/css/article.css">
 <script src="/assets/js/article.js" defer></script>
 </head>
@@ -42,7 +41,6 @@
     <p>כשעבדתי עם כמה מודלי שפה במקביל, גיליתי שהבעיה הקשה היא לא לגרום להם לכתוב קוד. הבעיה היא לגרום להם <strong>להפסיק</strong>: להפסיק לשאול עוד שאלת בירור, להפסיק לנסות שוב את אותו תיקון שנכשל, להפסיק לדרוס קובץ שלם כדי לשנות בו שורה אחת. Multi-AI Dev Team הוא התשובה שלי לבעיה הזו. זה תוסף ל-VS Code שבו אני מרכיבה צוות (מנהל, מתכנת, מעצבים ומבקרים) ממודלים של Anthropic, Google, OpenAI ו-xAI, ו-Orchestrator שרץ בתוך העורך מנהל ביניהם את העבודה וכותב קוד ישירות לתיקיית הפרויקט.</p>
 
     <section class="chapter" aria-labelledby="ch1">
-      <span class="chapter-no">פרק 1</span>
       <h2 id="ch1">האתגר ההנדסי בשטח, ולמה פתרונות מדף נכשלים</h2>
 
       <p>כלי AI לכתיבת קוד עובדים טוב כשיש מודל אחד ומשתמש אחד שמסתכל עליו. ברגע שמוסיפים עוד מודל, למשל מבקר שבודק את מה שהמתכנת כתב, נוצרת מערכת מבוזרת קטנה עם כל הבעיות של מערכת מבוזרת: מי מחזיק את מקור האמת, מה קורה כשאחד הצדדים נופל, ואיך יודעים שהתהליך תקוע ולא רק איטי.</p>
@@ -59,7 +57,6 @@
     </section>
 
     <section class="chapter" aria-labelledby="ch2">
-      <span class="chapter-no">פרק 2</span>
       <h2 id="ch2">ארכיטקטורת המערכת וזרימת הנתונים מקצה לקצה</h2>
 
       <p>התוסף בנוי משלוש שכבות: ממשק (לוח webview בסרגל הצד של VS Code), Orchestrator שמנהל את ה-Pipeline, ושכבת ספקים שמתרגמת בקשה אחידה לפורמט של כל ספק. אין לו אף תלות ריצה חיצונית. <code>npm install</code> מתקין רק TypeScript וטיפוסים, וכל הקריאות לספקים נכתבו ישירות מעל <code>fetch</code>.</p>
@@ -116,7 +113,6 @@ applyCacheBreakpoints(messages);</code></pre>
     </section>
 
     <section class="chapter" aria-labelledby="ch3">
-      <span class="chapter-no">פרק 3</span>
       <h2 id="ch3">התלבטויות הנדסיות ופתרון מקרי קצה קשים</h2>
 
       <h3>אכיפת מכסות בשלוש שכבות</h3>
@@ -182,7 +178,6 @@ refund(kind: QuotaKind): <span class="k">void</span></code></pre>
     </section>
 
     <section class="chapter" aria-labelledby="ch4">
-      <span class="chapter-no">פרק 4</span>
       <h2 id="ch4">בדיקות אוטומטיות, אבטחה ותוצאות מדידות</h2>
 
       <h3>579 בדיקות, ו-CI על כל push</h3>

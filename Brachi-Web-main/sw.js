@@ -1,6 +1,6 @@
 // Service Worker: keeps the shell, CV and articles available offline.
 // Change VERSION on every deploy that changes assets. Old caches are deleted on activate.
-const VERSION = 'v2.0.0';
+const VERSION = 'v2.0.1';
 const CORE = `bp-core-${VERSION}`;
 const RUNTIME = `bp-runtime-${VERSION}`;
 const RUNTIME_MAX = 40;
@@ -57,16 +57,17 @@ self.addEventListener('fetch', (event) => {
   if (req.mode === 'navigate') {
     event.respondWith((async () => {
       const cache = await caches.open(CORE);
+      const cached = (await cache.match(url.pathname, { ignoreSearch: true })) || (await cache.match(url.pathname + '.html'));
       try {
-        const net = await Promise.race([
+        // Without a cached copy there is nothing to fall back to, so wait for the network however slow it is
+        const net = cached ? await Promise.race([
           fetch(req),
           new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 3000)),
-        ]);
+        ]) : await fetch(req);
         if (cacheable(req, net)) cache.put(url.pathname === '/' ? '/' : url.pathname, net.clone());
         return net;
       } catch {
-        return (await cache.match(url.pathname, { ignoreSearch: true }))
-          || (await cache.match(url.pathname + '.html'))
+        return cached
           || (await cache.match('/404.html'))
           || new Response('אין חיבור לאינטרנט.', { status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
       }

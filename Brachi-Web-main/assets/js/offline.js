@@ -64,6 +64,8 @@ export function initOffline() {
     bugLine = n;
     lines[n].insertAdjacentHTML('beforeend', BUG);
     clearTimeout(spawnT);
+    // With reduced motion the bug waits until you catch it (no timed vanishing)
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     spawnT = setTimeout(() => { if (running) { msg.textContent = 'ברח. הבא בתור:'; placeBug(); } }, lifetime);
   }
   function clearBug() {
@@ -115,11 +117,17 @@ export function initOffline() {
     if (score > best) { store('bp-bug-best', score); bestEl.textContent = score; }
     msg.textContent = score >= 15 ? `${score} באגים. אפשר לקבל אותך לצוות.` : score >= 7 ? `${score} באגים. ה-CI מרוצה.` : `${score} באגים. גם זה code review.`;
   }
+  let opener = null;
   function openGame() {
+    opener = document.activeElement;
     if (!dialog.open) dialog.showModal();
     startBtn.focus();
   }
   startBtn.addEventListener('click', start);
   dialog.querySelector('[data-game-close]').addEventListener('click', () => dialog.close());
-  dialog.addEventListener('close', () => { if (running) end(); });
+  dialog.addEventListener('close', () => {
+    if (running) end();
+    const t = opener && opener.isConnected && opener !== document.body ? opener : document.querySelector('[data-offline-test]');
+    if (t) t.focus();
+  });
 }

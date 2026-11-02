@@ -2,14 +2,14 @@
 :root {
   --porcelain: #ECEEE9;
   --ink: #13252B;
-  --slate: #5D6E68;
-  --verdigris: #1B7F6A;
+  --slate: #56675F;
+  --verdigris: #156A58;
   --paper: #F7F8F5;
   --accent: var(--verdigris);
   --hair: color-mix(in srgb, var(--ink) 18%, transparent);
   --display: 'Karantina', 'IBM Plex Sans Hebrew', system-ui, sans-serif;
   --text: 'IBM Plex Sans Hebrew', system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
-  --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   --measure: 68ch;
   --gutter: 24px;
 }

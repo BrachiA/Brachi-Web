@@ -28,7 +28,7 @@ function anchor(n, toward) {
 }
 
 function drawGraph(host, spec, caption) {
-  const svg = el('svg', { viewBox: `0 0 ${spec.w} ${spec.h}`, role: 'img', 'aria-label': spec.label });
+  const svg = el('svg', { viewBox: `0 0 ${spec.w} ${spec.h}`, role: 'group', 'aria-label': spec.label });
   el('title', {}, svg).textContent = spec.label;
   const gEdges = el('g', {}, svg);
   const gNodes = el('g', {}, svg);
@@ -365,7 +365,12 @@ function assistExtras(host, visibleRef) {
 
   return {
     start() { if (!raf && !reduced()) raf = requestAnimationFrame(frame); else if (reduced()) frame(performance.now()); },
-    stop() { if (raf) cancelAnimationFrame(raf); raf = 0; clearTimeout(timer); speaking = false; },
+    stop() {
+      if (raf) cancelAnimationFrame(raf);
+      raf = 0;
+      if (speaking) { out.textContent = ''; meta.textContent = 'ההדגמה נעצרה כשגללתם הלאה.'; btn.textContent = 'הפעילו הדגמה'; }
+      clearTimeout(timer); speaking = false;
+    },
   };
 }
 

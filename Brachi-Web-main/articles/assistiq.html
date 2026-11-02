@@ -12,9 +12,8 @@
 <meta property="og:description" content="מאמר עומק על צנרת קול-לטקסט-להצעה בזמן אמת: WebSocket proxy, תמלול עברית, הזרמת טוקנים ב-SignalR ולולאת למידה מבוקרת.">
 <meta property="og:url" content="https://brachi-web.vercel.app/articles/assistiq.html">
 <meta name="theme-color" content="#ECEEE9">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono&family=IBM+Plex+Sans+Hebrew:wght@400;500;600&family=Karantina:wght@700&display=swap">
+<link rel="preload" href="/assets/fonts/ibm-plex-sans-hebrew-400-hebrew.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/css/fonts.css">
 <link rel="stylesheet" href="/assets/css/article.css">
 <script src="/assets/js/article.js" defer></script>
 </head>
@@ -42,7 +41,6 @@
     <p>נציג שירות בחברת רכב שיתופי מקבל שיחה: "הקוד לא עובד ואני עומד ליד האוטו". התשובה קיימת בנהלים. היא פשוט קבורה במסמך של 200 שורות, והלקוח מחכה על הקו. בניתי את AssistIQ כדי שהתשובה תופיע על המסך של הנציג בזמן שהלקוח עוד מדבר. המערכת קולטת את האודיו, מתמללת אותו בעברית, שולחת את התמלול למודל שפה עם הנהלים של החברה, ומזרימה את ההצעה לבועה צפה בדפדפן של הנציג, מילה אחרי מילה.</p>
 
     <section class="chapter" aria-labelledby="ch1">
-      <span class="chapter-no">פרק 1</span>
       <h2 id="ch1">האתגר ההנדסי בשטח, ולמה פתרונות מדף נכשלים</h2>
 
       <p>עוזר כזה שווה משהו רק אם הוא מהיר יותר מהנציג. הצעה שמגיעה אחרי שהנציג כבר ענה היא רעש. לכן כל החלטה בפרויקט נמדדה מול שאלה אחת: כמה זמן עובר מהרגע שהלקוח אמר משהו עד שהנציג רואה עליו תשובה.</p>
@@ -58,7 +56,6 @@
     </section>
 
     <section class="chapter" aria-labelledby="ch2">
-      <span class="chapter-no">פרק 2</span>
       <h2 id="ch2">ארכיטקטורת המערכת וזרימת הנתונים מקצה לקצה</h2>
 
       <figure>
@@ -114,7 +111,6 @@
     </section>
 
     <section class="chapter" aria-labelledby="ch3">
-      <span class="chapter-no">פרק 3</span>
       <h2 id="ch3">התלבטויות הנדסיות ופתרון מקרי קצה קשים</h2>
 
       <h3>מתי לשלוח טוקנים לדפדפן</h3>
@@ -165,7 +161,6 @@
     </section>
 
     <section class="chapter" aria-labelledby="ch4">
-      <span class="chapter-no">פרק 4</span>
       <h2 id="ch4">בדיקות אוטומטיות, אבטחה ותוצאות מדידות</h2>
 
       <p>זה הפרק שבו אני הכי ישירה, כי AssistIQ הוא אב טיפוס עובד ולא מערכת פרודקשן. הוא רץ מקצה לקצה, בעברית, מול נציג אמיתי ושיחת טלפון אמיתית. אבל יש פער בין "עובד" לבין "מוכן", ואני מעדיפה למפות אותו בעצמי.</p>

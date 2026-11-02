@@ -22,7 +22,8 @@ export function initPlayground(root, { onChoose }) {
     const avail = Math.max(240, stage.clientWidth - (vp === 'desktop' ? 16 : 20));
     const k = Math.min(1, avail / frameW);
     device.style.setProperty('--k', k.toFixed(4));
-    const frameH = vp === 'desktop' ? 760 : Math.min(760, Math.max(560, Math.round(innerHeight * 0.78 / k)));
+    // On a narrow screen the desktop frame is taller, so the scaled preview isn't a thin strip
+    const frameH = vp === 'desktop' ? (k < 0.45 ? 1500 : 760) : Math.min(760, Math.max(560, Math.round(innerHeight * 0.78 / k)));
     device.style.setProperty('--frame-h', frameH + 'px');
   }
 
@@ -97,6 +98,7 @@ export function initPlayground(root, { onChoose }) {
   setVp(vp);
 
   return {
+    select(id) { load(id); },
     enter() {
       active = true;
       const src = `/demos/${current}.html`;

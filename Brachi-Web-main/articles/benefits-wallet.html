@@ -12,9 +12,8 @@
 <meta property="og:description" content="מאמר עומק על Benefits Wallet: מודל הנתונים, הסורק עם אדם בלולאה, החיפוש שסולח על שגיאות כתיב והבדיקות.">
 <meta property="og:url" content="https://brachi-web.vercel.app/articles/benefits-wallet.html">
 <meta name="theme-color" content="#ECEEE9">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono&family=IBM+Plex+Sans+Hebrew:wght@400;500;600&family=Karantina:wght@700&display=swap">
+<link rel="preload" href="/assets/fonts/ibm-plex-sans-hebrew-400-hebrew.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/css/fonts.css">
 <link rel="stylesheet" href="/assets/css/article.css">
 <script src="/assets/js/article.js" defer></script>
 </head>
@@ -42,7 +41,6 @@
     <p>לרובנו יש כמה כרטיסי אשראי, מועדון עובדים ועוד שניים-שלושה מועדוני לקוחות. כל אחד מהם נותן הנחות, חלקן גדולות, ואף אחד לא זוכר אילו. ההטבה שווה משהו רק אם נזכרים בה בזמן, ואחרי התשלום כבר מאוחר מדי. בניתי את Benefits Wallet כמערכת שלמה סביב הבעיה הזו: אפליקציית מובייל למשתמשת, דשבורד ניהול, תוסף Chrome להזנה ידנית ושרת אחד שהוא מקור האמת היחיד לכולם.</p>
 
     <section class="chapter" aria-labelledby="ch1">
-      <span class="chapter-no">פרק 1</span>
       <h2 id="ch1">האתגר ההנדסי בשטח, ולמה פתרונות מדף נכשלים</h2>
 
       <p>על הנייר זו רשימה של הנחות. בפועל, כמעט כל מה שמעניין במערכת הזו נמצא בשאלה <strong>"למי מגיעה ההטבה הזו?"</strong>. הטבה יכולה להיות לכל חברי מועדון מסוים, רק בסניפי תל אביב של מותג מסוים, לכל מי שיש לו כרטיס מסוים בכל מותג, או לשילוב של כמה מאלה. אם מנסים לבטא את זה בעמודות קבועות על טבלת ההטבות, מגיעים מהר מאוד לשכפול הטבות או לעמודות מיוחדות שאף אחד לא זוכר למה נוספו.</p>
@@ -55,7 +53,6 @@
     </section>
 
     <section class="chapter" aria-labelledby="ch2">
-      <span class="chapter-no">פרק 2</span>
       <h2 id="ch2">ארכיטקטורת המערכת וזרימת הנתונים מקצה לקצה</h2>
 
       <figure>
@@ -121,7 +118,6 @@
     </section>
 
     <section class="chapter" aria-labelledby="ch3">
-      <span class="chapter-no">פרק 3</span>
       <h2 id="ch3">התלבטויות הנדסיות ופתרון מקרי קצה קשים</h2>
 
       <h3>ציון ביטחון: למה לוגריתם ולא קבוע</h3>
@@ -139,7 +135,7 @@
   <span class="k">return</span> Math.max(MIN_VALUE_CHANGE_DEDUCTION, Math.min(MAX_VALUE_CHANGE_DEDUCTION, raw));
 }</code></pre>
       <span class="code-cap">מתוך <code>apps/backend/src/modules/scraper/confidence.service.ts</code>.</span>
-      <p>שלוש החלטות בתוך הפונקציה הזו. <strong>יחס ולא הפרש</strong>, כי מה שמעניין הוא סדר הגודל של הקפיצה (פי 2, פי 4, פי 9), וכך הכלל מתנהג אותו דבר על הנחה של 10% ועל הנחה של 1,000 ש"ח. <strong>סימטרי</strong>, כי ירידה חדה חשודה בדיוק כמו עלייה חדה. ו<strong>לוגריתמי</strong>, עם מקדם שנבחר כך ששינוי של פי 2.3 בערך ומעלה כבר מוריד את הציון מתחת לסף. הניכוי חסום בין 10 ל-60, ומעבר אל אפס או ממנו מקבל תמיד את הניכוי המרבי.</p>
+      <p>שלוש החלטות בתוך הפונקציה הזו. <strong>יחס ולא הפרש</strong>, כי מה שמעניין הוא סדר הגודל של הקפיצה (פי 2, פי 4, פי 9), וכך הכלל מתנהג אותו דבר על הנחה של 10% ועל הנחה של 1,000 ש"ח. <strong>סימטרי</strong>, כי ירידה חדה חשודה בדיוק כמו עלייה חדה. ו<strong>לוגריתמי</strong>, עם מקדם שנבחר כך ששינוי של פי 2.5 ומעלה (בדיוק המקרה שהבדיקה בודקת) כבר מוריד את הציון מתחת לסף. הניכוי חסום בין 10 ל-60, ומעבר אל אפס או ממנו מקבל תמיד את הניכוי המרבי.</p>
       <p>כלל נוסף: הטבה <strong>חדשה</strong> לא מתפרסמת אוטומטית אלא אם למקור הוגדר מראש שיוך ברירת מחדל (מועדון או מותג, וגם קטגוריה). בלי שיוך אין למי לקשר אותה, ושני השדות האלה חובה על הטבה.</p>
 
       <h3>חיפוש שסולח על שגיאות כתיב בעברית</h3>
@@ -174,7 +170,6 @@
     </section>
 
     <section class="chapter" aria-labelledby="ch4">
-      <span class="chapter-no">פרק 4</span>
       <h2 id="ch4">בדיקות אוטומטיות, אבטחה ותוצאות מדידות</h2>
 
       <h3>136 בדיקות מול Postgres אמיתי</h3>

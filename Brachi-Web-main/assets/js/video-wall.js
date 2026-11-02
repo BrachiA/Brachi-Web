@@ -125,7 +125,7 @@ export function initVideoWall(root, list, cfg) {
     const p = v.play();
     if (p && p.then) {
       p.then(() => {
-        if (token !== s.token) v.pause();   // the intent changed while the promise was pending
+        if (token !== s.token) return;   // the intent changed: stop() has already paused, and a newer action (tap/sound) must not be paused
       }).catch((err) => {
         if (token !== s.token || (err && err.name === 'AbortError')) return; // a pause/src change during play() is not an error
         s.playing = false;
