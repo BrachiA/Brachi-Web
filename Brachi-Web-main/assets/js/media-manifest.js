@@ -18,7 +18,7 @@ export const mediaConfig = {
   // Cloudflare R2: once r2PublicBase is set, the site reads the video list published from the editor
   // at <r2PublicBase>/<r2Prefix>videos-manifest.json (the bucket needs CORS GET for the site's origin).
   r2Bucket: 'brachi2026',
-  r2PublicBase: '',      // e.g. 'https://pub-xxxxxx.r2.dev' (no trailing /)
+  r2PublicBase: 'https://pub-c26cb8afb1234f4ca8ee24441c393752.r2.dev',
   r2Prefix: '',
 };
 
