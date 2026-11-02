@@ -1,42 +1,38 @@
 {
   "version": 1,
-  "updated": "2026-11-02",
+  "updated": "2026-11-02T00:00:00Z",
   "slots": [
     {
-      "id": "slot-reel-1",
-      "title": "רילס אנכי לעסק",
+      "id": "car-overtake",
+      "title": "מכונית ספורט אדומה עוקפת",
+      "subtitle": "",
       "category": "reel",
-      "tool": "Kling AI"
+      "tool": "",
+      "src": "https://pub-c26cb8afb1234f4ca8ee24441c393752.r2.dev/Red_sports_car_overtakes_silver_b120366f_720p.mp4"
     },
     {
-      "id": "slot-story-1",
-      "title": "קליפ אנימציה לשיר או למותג",
+      "id": "baby-banana",
+      "title": "תינוק מגיש בננה לאיש עסקים",
+      "subtitle": "",
       "category": "story",
-      "tool": "Runway"
+      "tool": "",
+      "src": "https://pub-c26cb8afb1234f4ca8ee24441c393752.r2.dev/Baby_offers_banana_to_businessman_ee51c047_720p.mp4"
     },
     {
-      "id": "slot-deck-1",
-      "title": "פתיח ויזואלי למצגת",
-      "category": "deck",
-      "tool": "Google Flow"
-    },
-    {
-      "id": "slot-reel-2",
-      "title": "סרטון השקה למוצר",
+      "id": "design-2",
+      "title": "עיצוב ללא שם (2)",
+      "subtitle": "",
       "category": "reel",
-      "tool": "Google Flow"
+      "tool": "",
+      "src": "https://pub-c26cb8afb1234f4ca8ee24441c393752.r2.dev/%D7%A2%D7%99%D7%A6%D7%95%D7%91%20%D7%9C%D7%9C%D7%90%20%D7%A9%D7%9D%20%282%29.mp4"
     },
     {
-      "id": "slot-story-2",
-      "title": "סיפור מותג קצר",
-      "category": "story",
-      "tool": "Kling AI"
-    },
-    {
-      "id": "slot-reel-3",
-      "title": "הזמנה לאירוע",
+      "id": "design-6",
+      "title": "עיצוב ללא שם (6)",
+      "subtitle": "",
       "category": "reel",
-      "tool": "Runway"
+      "tool": "",
+      "src": "https://pub-c26cb8afb1234f4ca8ee24441c393752.r2.dev/%D7%A2%D7%99%D7%A6%D7%95%D7%91%20%D7%9C%D7%9C%D7%90%20%D7%A9%D7%9D%20%286%29.mp4"
     }
   ]
 }
