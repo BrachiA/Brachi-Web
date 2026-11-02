@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>שִׁריוֹן | הגנת API בזמן אמת | דמו</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--obs:#0D1416;--obs2:#121C1F;--glass:rgba(160,220,230,.06);--edge:rgba(160,220,230,.16);--ice:#8FE3F0;--teal:#2EC4B6;--warn:#FFB84D;--bad:#FF6B6B;--txt:#E3EEF0;--mute:#8CA3A8}
+*{box-sizing:border-box;margin:0}
+[hidden]{display:none!important}
+html{scroll-behavior:smooth}
+body{background:var(--obs);color:var(--txt);font:400 16px/1.6 Rubik,system-ui,sans-serif;padding-block-end:64px;overflow-x:hidden;
+  background-image:radial-gradient(800px 500px at 90% -10%,rgba(46,196,182,.14),transparent 60%),radial-gradient(600px 400px at 0% 30%,rgba(143,227,240,.07),transparent 60%)}
+h1,h2,h3{font-weight:700;line-height:1.1;letter-spacing:-.01em}
+code,pre,.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
+button,input{font:inherit;color:inherit}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--ice);outline-offset:3px}
+.wrap{max-width:1180px;margin-inline:auto;padding-inline:20px}
+.glass{background:var(--glass);border:1px solid var(--edge);border-radius:14px;backdrop-filter:blur(14px)}
+nav .wrap{display:flex;align-items:center;justify-content:space-between;height:64px}
+.logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:20px}
+.logo svg{width:28px;height:28px}
+nav ul{display:flex;gap:24px;list-style:none;padding:0;color:var(--mute)}
+nav a{color:inherit;text-decoration:none}nav ul a:hover{color:var(--txt)}
+.btn{display:inline-flex;align-items:center;gap:8px;border-radius:10px;padding:11px 18px;font-weight:500;cursor:pointer;text-decoration:none;border:1px solid transparent}
+.btn-ice{background:var(--ice);color:var(--obs)}
+.btn-edge{border-color:var(--edge);background:var(--glass)}
+@media (max-width:760px){nav ul{display:none}}
+.hero{padding-block:56px 40px}
+.hero .wrap{display:grid;grid-template-columns:1fr 1.15fr;gap:40px;align-items:center}
+@media (max-width:900px){.hero .wrap{grid-template-columns:1fr}}
+.status{display:inline-flex;align-items:center;gap:8px;font-size:14px;color:var(--teal);margin-block-end:16px}
+.status i{width:8px;height:8px;border-radius:50%;background:var(--teal);box-shadow:0 0 0 4px rgba(46,196,182,.2);animation:pulse 2s infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 8px rgba(46,196,182,0)}}
+.hero h1{font-size:clamp(38px,5.6vw,66px)}
+.hero p{color:var(--mute);font-size:18px;max-width:46ch;margin-block:18px 26px}
+.hero .cta{display:flex;gap:10px;flex-wrap:wrap}
+/* telemetry */
+.tele{padding:18px}
+.tele-h{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-block-end:10px;flex-wrap:wrap}
+.tele-h h2{font-size:15px;font-weight:500;color:var(--mute)}
+.range{display:flex;gap:4px}
+.range button{background:none;border:1px solid var(--edge);border-radius:8px;padding:4px 10px;font-size:13px;cursor:pointer;color:var(--mute)}
+.range button[aria-pressed=true]{background:var(--ice);color:var(--obs);border-color:var(--ice)}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-block-end:12px}
+.kpi{padding:10px 12px;border-radius:10px;background:rgba(0,0,0,.25)}
+.kpi small{color:var(--mute);font-size:12px;display:block}
+.kpi b{font-size:22px;font-weight:500;font-variant-numeric:tabular-nums}
+.kpi.bad b{color:var(--bad)}
+canvas{width:100%;height:220px;display:block}
+.legend{display:flex;gap:16px;font-size:13px;color:var(--mute);margin-block-start:8px}
+.legend i{display:inline-block;width:14px;height:3px;border-radius:2px;vertical-align:middle;margin-inline-end:6px}
+section{padding-block:72px}
+.sec-h{margin-block-end:28px;max-width:640px}
+.sec-h h2{font-size:clamp(30px,4vw,44px)}
+.sec-h p{color:var(--mute);margin-block-start:10px}
+/* features */
+.feats{display:grid;grid-template-columns:2fr 1fr 1fr;gap:14px}
+.feats .glass{padding:22px}
+.feats .glass:first-child{grid-row:span 2}
+.feats h3{font-size:19px;margin-block:10px 6px}
+.feats p{color:var(--mute);font-size:15px}
+.feats svg{width:32px;height:32px}
+@media (max-width:860px){.feats{grid-template-columns:1fr}.feats .glass:first-child{grid-row:auto}}
+.flow{margin-block-start:18px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:13px}
+.flow span{padding:6px 10px;border-radius:8px;background:rgba(0,0,0,.3);border:1px solid var(--edge)}
+.flow b{color:var(--teal);font-weight:400}
+/* code */
+.code{overflow:hidden}
+.tabs{display:flex;border-block-end:1px solid var(--edge);padding-inline:8px;align-items:center}
+.tabs [role=tab]{background:none;border:0;padding:12px 14px;cursor:pointer;color:var(--mute);border-block-end:2px solid transparent;margin-block-end:-1px}
+.tabs [role=tab][aria-selected=true]{color:var(--ice);border-color:var(--ice)}
+.copy{margin-inline-start:auto;background:none;border:1px solid var(--edge);border-radius:8px;padding:6px 12px;cursor:pointer;font-size:13px;color:var(--mute)}
+pre{padding:20px;overflow:auto;font-size:14px;line-height:1.7;direction:ltr;text-align:left;min-height:220px}
+.k{color:var(--ice)}.s{color:#B8F28B}.c{color:#5f7a80}.n{color:var(--warn)}
+.code-grid{display:grid;grid-template-columns:1fr 1.4fr;gap:28px;align-items:center}
+@media (max-width:860px){.code-grid{grid-template-columns:1fr}}
+.code-grid ul{list-style:none;padding:0;display:grid;gap:12px;color:var(--mute)}
+.code-grid li::before{content:"";display:inline-block;width:8px;height:8px;border:2px solid var(--teal);border-radius:2px;margin-inline-end:10px;transform:rotate(45deg)}
+/* pricing calc */
+.calc{display:grid;grid-template-columns:1.3fr 1fr;gap:0;overflow:hidden}
+@media (max-width:860px){.calc{grid-template-columns:1fr}}
+.calc .in{padding:26px;display:grid;gap:22px}
+.calc label{display:grid;gap:8px}
+.calc .lab{display:flex;justify-content:space-between;color:var(--mute)}
+.calc .lab output{color:var(--txt);font-weight:500;font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--ice);height:28px}
+.sw{display:flex;align-items:center;gap:12px;cursor:pointer}
+.sw input{appearance:none;width:44px;height:24px;border-radius:999px;background:#25363a;position:relative;cursor:pointer;transition:background .2s}
+.sw input::after{content:"";position:absolute;top:3px;inset-inline-start:3px;width:18px;height:18px;border-radius:50%;background:var(--txt);transition:inset-inline-start .2s}
+.sw input:checked{background:var(--teal)}.sw input:checked::after{inset-inline-start:23px}
+.calc .out{padding:26px;background:rgba(143,227,240,.07);border-inline-start:1px solid var(--edge);display:grid;align-content:center;gap:10px}
+.calc .big{font-size:56px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1}
+.calc .big small{font-size:16px;font-weight:400;color:var(--mute)}
+.calc .tier{color:var(--teal)}
+.calc dl{display:grid;grid-template-columns:1fr auto;gap:4px 12px;font-size:14px;color:var(--mute)}
+.calc dd{text-align:end;font-variant-numeric:tabular-nums;color:var(--txt)}
+footer{padding-block:36px;color:var(--mute);font-size:14px;border-block-start:1px solid var(--edge)}
+footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.bp-bar{position:fixed;inset-inline:0;bottom:0;z-index:50;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 16px;background:rgba(13,20,22,.92);backdrop-filter:blur(10px);border-block-start:1px solid var(--edge);font-size:13px;color:var(--mute)}
+.bp-bar button{background:var(--ice);color:var(--obs);border:0;padding:9px 14px;border-radius:10px;font-weight:500;cursor:pointer;font-size:14px}
+@media (max-width:480px){.bp-bar span{display:none}.bp-bar button{width:100%}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<nav><div class="wrap">
+  <a class="logo" href="#"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 2 4 7v8c0 7 5 12.5 12 15 7-2.5 12-8 12-15V7z" fill="none" stroke="#8FE3F0" stroke-width="2"/><path d="M10 16l4 4 8-9" fill="none" stroke="#2EC4B6" stroke-width="2.4" stroke-linecap="round"/></svg>שִׁריוֹן</a>
+  <ul><li><a href="#live">ניטור</a></li><li><a href="#api">API</a></li><li><a href="#pricing">תמחור</a></li></ul>
+  <a class="btn btn-ice" href="#pricing">14 יום חינם</a>
+</div></nav>
+
+<header class="hero"><div class="wrap">
+  <div>
+    <p class="status"><i></i>כל המערכות תקינות</p>
+    <h1>חוסמים בקשות זדוניות ל-API לפני שהן מגיעות לשרת שלכם</h1>
+    <p>שריון יושב מול ה-API שלכם, לומד את דפוס התנועה הרגיל וחוסם סריקות, גניבת טוקנים ו-scraping בתוך 40 אלפיות שנייה. ההתקנה היא שינוי DNS אחד.</p>
+    <div class="cta"><a class="btn btn-ice" href="#api">לתיעוד</a><a class="btn btn-edge" href="#pricing">מחשבון מחיר</a></div>
+  </div>
+  <div class="glass tele" id="live">
+    <div class="tele-h"><h2>תנועה חיה, api.acme.co.il</h2>
+      <div class="range" role="group" aria-label="קצב דגימה"><button type="button" aria-pressed="true" data-speed="1">רגיל</button><button type="button" aria-pressed="false" data-speed="3">מתקפה</button></div></div>
+    <div class="kpis">
+      <div class="kpi"><small>בקשות לשנייה</small><b id="kRps">0</b></div>
+      <div class="kpi bad"><small>נחסמו</small><b id="kBlk">0</b></div>
+      <div class="kpi"><small>זמן תגובה p95</small><b id="kLat">0ms</b></div>
+    </div>
+    <canvas id="chart" aria-label="גרף בקשות ובקשות חסומות לאורך זמן" role="img"></canvas>
+    <div class="legend"><span><i style="background:#8FE3F0"></i>בקשות תקינות</span><span><i style="background:#FF6B6B"></i>נחסמו</span></div>
+  </div>
+</div></header>
+
+<section><div class="wrap">
+  <div class="sec-h"><h2>מה קורה לכל בקשה</h2><p>כל בקשה עוברת שלוש בדיקות. הכל רץ ב-edge, קרוב למשתמש.</p></div>
+  <div class="feats">
+    <div class="glass"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="12" fill="none" stroke="#8FE3F0" stroke-width="2"/><path d="M16 9v7l5 3" stroke="#2EC4B6" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+      <h3>זיהוי חריגות לפי התנהגות</h3><p>המערכת לומדת 7 ימים של תנועה רגילה לכל endpoint: קצב, גיאוגרפיה, סדר קריאות. בקשה שסוטה מהדפוס מקבלת ציון סיכון.</p>
+      <div class="flow"><span>בקשה</span><b>←</b><span>חתימת לקוח</span><b>←</b><span>ציון סיכון</span><b>←</b><span>אישור / חסימה</span></div></div>
+    <div class="glass"><svg viewBox="0 0 32 32" aria-hidden="true"><rect x="6" y="14" width="20" height="13" rx="2" fill="none" stroke="#8FE3F0" stroke-width="2"/><path d="M11 14V10a5 5 0 0 1 10 0v4" fill="none" stroke="#2EC4B6" stroke-width="2"/></svg><h3>טוקנים שנגנבו</h3><p>טוקן שמופיע פתאום משתי מדינות בתוך דקה נחסם ונשלחת התראה.</p></div>
+    <div class="glass"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M4 24 12 14l6 6 10-12" fill="none" stroke="#8FE3F0" stroke-width="2"/></svg><h3>הגבלת קצב חכמה</h3><p>מגבלה לכל משתמש ולא לכל IP, כך שמשרד שלם מאחורי NAT לא נחסם.</p></div>
+    <div class="glass"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M6 8h20M6 16h14M6 24h8" stroke="#8FE3F0" stroke-width="2" stroke-linecap="round"/></svg><h3>יומן מלא</h3><p>כל החלטה נשמרת 90 יום עם הסיבה, לבדיקה ולביקורת.</p></div>
+    <div class="glass"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="4" fill="#2EC4B6"/><circle cx="16" cy="16" r="11" fill="none" stroke="#8FE3F0" stroke-width="2" stroke-dasharray="3 4"/></svg><h3>40ms תוספת זמן</h3><p>p95 שנמדד בכל 31 נקודות הנוכחות שלנו.</p></div>
+  </div>
+</div></section>
+
+<section id="api"><div class="wrap code-grid">
+  <div class="sec-h"><h2>שלוש שורות קוד</h2><p>אפשר גם בלי קוד בכלל, דרך DNS. מי שרוצה לבדוק ציון סיכון בעצמו, יש API.</p>
+    <ul style="margin-block-start:18px"><li>SDK ל-Node, Python ו-Go</li><li>תשובה ממוצעת תוך 12ms</li><li>Webhook לכל חסימה</li></ul></div>
+  <div class="glass code">
+    <div class="tabs" role="tablist" aria-label="שפת דוגמה">
+      <button role="tab" type="button" aria-selected="true" aria-controls="codePane" data-lang="curl">cURL</button>
+      <button role="tab" type="button" aria-selected="false" aria-controls="codePane" data-lang="js" tabindex="-1">JavaScript</button>
+      <button role="tab" type="button" aria-selected="false" aria-controls="codePane" data-lang="py" tabindex="-1">Python</button>
+      <button class="copy" type="button" id="copy">העתקה</button>
+    </div>
+    <pre id="codePane" role="tabpanel" tabindex="0"><code id="code"></code></pre>
+  </div>
+</div></section>
+
+<section id="pricing"><div class="wrap">
+  <div class="sec-h"><h2>מחשבון מחיר</h2><p>משלמים לפי מספר המפתחים בצוות ולפי נפח הבקשות. בלי עמלות נסתרות.</p></div>
+  <div class="glass calc">
+    <div class="in">
+      <label><span class="lab">מפתחים בצוות<output id="oSeats">5</output></span><input type="range" id="seats" min="1" max="50" value="5"></label>
+      <label><span class="lab">בקשות בחודש<output id="oReq">10M</output></span><input type="range" id="req" min="1" max="100" value="10" aria-valuetext="10 מיליון"></label>
+      <label class="sw"><input type="checkbox" id="annual" role="switch"> תשלום שנתי (20% הנחה)</label>
+    </div>
+    <div class="out" aria-live="polite">
+      <span class="tier" id="tier">צוות</span>
+      <div class="big">$<span id="total">0</span><small> לחודש</small></div>
+      <dl><dt>מפתחים</dt><dd id="dSeats"></dd><dt>בקשות</dt><dd id="dReq"></dd><dt>הנחה שנתית</dt><dd id="dDisc"></dd></dl>
+      <a class="btn btn-ice" href="#" style="justify-self:start;margin-block-start:8px">התחילו ניסיון חינם</a>
+    </div>
+  </div>
+</div></section>
+
+<footer><div class="wrap"><span>© שריון אבטחת API בע״מ · הרצליה פיתוח</span><span>SOC 2 Type II · ISO 27001</span></div></footer>
+
+<div class="bp-bar"><span>דמו לדוגמה מאת ברכי</span><button type="button" id="bpCta">אהבתי את הסגנון הזה! בואי נבנה לי אתר כזה ←</button></div>
+
+<script>
+(()=>{
+const $=s=>document.querySelector(s);
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+// ── telemetry chart
+const cv=$('#chart'),ctx=cv.getContext('2d');
+const N=90;let ok=[],bad=[],speed=1,t=0;
+for(let i=0;i<N;i++){ok.push(base(i));bad.push(4+Math.random()*6);}
+function base(i){return 420+Math.sin(i/9)*60+Math.random()*40;}
+function size(){const dpr=Math.min(2,devicePixelRatio||1);const r=cv.getBoundingClientRect();cv.width=Math.max(1,r.width*dpr);cv.height=Math.max(1,r.height*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);draw();}
+function draw(){
+  const w=cv.clientWidth,h=cv.clientHeight;ctx.clearRect(0,0,w,h);
+  const max=Math.max(700,...ok.map((v,i)=>v+bad[i]))*1.1;
+  ctx.strokeStyle='rgba(160,220,230,.08)';ctx.lineWidth=1;
+  for(let g=1;g<4;g++){const y=h*g/4;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();}
+  const line=(arr,color,fill)=>{ctx.beginPath();arr.forEach((v,i)=>{const x=w-(i/(N-1))*w,y=h-(v/max)*h;i?ctx.lineTo(x,y):ctx.moveTo(x,y);});
+    ctx.strokeStyle=color;ctx.lineWidth=2;ctx.stroke();if(fill){ctx.lineTo(0,h);ctx.lineTo(w,h);ctx.closePath();const gr=ctx.createLinearGradient(0,0,0,h);gr.addColorStop(0,fill);gr.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=gr;ctx.fill();}};
+  // newest sample on the right edge? In RTL the timeline reads right→left: newest on the right (index 0 at x=w)
+  line(ok,'#8FE3F0','rgba(143,227,240,.18)');line(bad,'#FF6B6B','rgba(255,107,107,.14)');
+}
+function step(){
+  t++;const attack=speed>1;
+  ok.unshift(base(t)*(attack?1.25:1));bad.unshift(attack?120+Math.random()*180:3+Math.random()*8);ok.length=bad.length=N;
+  $('#kRps').textContent=Math.round(ok[0]+bad[0]).toLocaleString('he-IL');
+  $('#kBlk').textContent=Math.round(bad[0]).toLocaleString('he-IL');
+  $('#kLat').textContent=Math.round(38+Math.random()*6+(attack?4:0))+'ms';
+  draw();
+}
+let timer=null;
+function run(){if(timer||document.hidden)return;timer=setInterval(step,reduce?1500:500);}
+function stop(){clearInterval(timer);timer=null;}
+document.addEventListener('visibilitychange',()=>document.hidden?stop():run());
+new ResizeObserver(size).observe(cv);
+document.querySelectorAll('[data-speed]').forEach(b=>b.addEventListener('click',()=>{speed=+b.dataset.speed;document.querySelectorAll('[data-speed]').forEach(x=>x.setAttribute('aria-pressed',x===b));}));
+size();step();run();
+
+// ── code switcher
+const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;');
+const SNIP={
+curl:`<span class="c"># ציון סיכון לבקשה</span>
+curl https://api.shiryon.io/v1/score \\
+  -H <span class="s">"Authorization: Bearer $SHIRYON_KEY"</span> \\
+  -d <span class="s">'{"ip":"203.0.113.7","path":"/login","token_id":"tk_91f"}'</span>
+
+<span class="c"># {"risk":<span class="n">0.93</span>,"action":"block","reason":"token_geo_jump"}</span>`,
+js:`<span class="k">import</span> { Shiryon } <span class="k">from</span> <span class="s">'@shiryon/node'</span>;
+
+<span class="k">const</span> shield = <span class="k">new</span> Shiryon(process.env.SHIRYON_KEY);
+
+app.use(<span class="k">async</span> (req, res, next) => {
+  <span class="k">const</span> { action } = <span class="k">await</span> shield.score(req);
+  <span class="k">if</span> (action === <span class="s">'block'</span>) <span class="k">return</span> res.sendStatus(<span class="n">403</span>);
+  next();
+});`,
+py:`<span class="k">from</span> shiryon <span class="k">import</span> Shiryon
+
+shield = Shiryon(os.environ[<span class="s">"SHIRYON_KEY"</span>])
+
+<span class="k">@app.before_request</span>
+<span class="k">def</span> guard():
+    verdict = shield.score(request)
+    <span class="k">if</span> verdict.action == <span class="s">"block"</span>:
+        abort(<span class="n">403</span>)`};
+let lang='curl';
+const tabs=[...document.querySelectorAll('[role=tab]')];
+function show(l){lang=l;$('#code').innerHTML=SNIP[l];tabs.forEach(b=>{const on=b.dataset.lang===l;b.setAttribute('aria-selected',on);b.tabIndex=on?0:-1;});}
+tabs.forEach((b,i)=>{b.addEventListener('click',()=>show(b.dataset.lang));
+  b.addEventListener('keydown',e=>{let n=null;if(e.key==='ArrowLeft')n=(i+1)%tabs.length;if(e.key==='ArrowRight')n=(i-1+tabs.length)%tabs.length;if(n===null)return;e.preventDefault();tabs[n].focus();show(tabs[n].dataset.lang);});});
+show('curl');
+$('#copy').addEventListener('click',async()=>{const txt=$('#code').textContent;const btn=$('#copy');
+  try{await navigator.clipboard.writeText(txt);btn.textContent='הועתק';}catch(e){btn.textContent='סמנו והעתיקו ידנית';}
+  setTimeout(()=>btn.textContent='העתקה',1800);});
+
+// ── pricing
+const seats=$('#seats'),req=$('#req'),annual=$('#annual');
+function price(){
+  const s=+seats.value,r=+req.value;
+  const seatCost=s*19;
+  const reqCost=r<=5?0:(Math.min(r,50)-5)*6+Math.max(0,r-50)*4; // $ per million
+  let tot=49+seatCost+reqCost;const disc=annual.checked?Math.round(tot*.2):0;tot-=disc;
+  $('#oSeats').textContent=s;$('#oReq').textContent=r+'M';req.setAttribute('aria-valuetext',r+' מיליון');
+  $('#total').textContent=tot.toLocaleString('en-US');
+  $('#tier').textContent=s>=25||r>=60?'ארגון':s>=6||r>=15?'צמיחה':'צוות';
+  $('#dSeats').textContent=`${s} × $19`;$('#dReq').textContent=r<=5?'5M הראשונים כלולים':`$${reqCost}`;$('#dDisc').textContent=disc?`−$${disc}`:'—';
+}
+[seats,req,annual].forEach(i=>i.addEventListener('input',price));price();
+
+$('#bpCta').addEventListener('click',()=>{if(window.parent!==window)window.parent.postMessage({type:'bp:choose-style',id:'tech'},location.origin);else location.href='/#web/contact?style=tech';});
+})();
+</script>
+</body>
+</html>

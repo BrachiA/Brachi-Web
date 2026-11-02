@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ארנק הטבות: מאמר הארכיטקטורה | ברכי פיטוסי</title>
+<meta name="description" content="איך בניתי מערכת Full-Stack עם ארבע אפליקציות סביב שרת אחד: כלל נראות יחיד, חיפוש מטושטש עם pg_trgm, סורק עם ציון ביטחון לוגריתמי ו-136 בדיקות מול Postgres אמיתי.">
+<link rel="canonical" href="https://brachi-web.vercel.app/articles/benefits-wallet.html">
+<meta property="og:type" content="article">
+<meta property="og:locale" content="he_IL">
+<meta property="og:title" content="ארנק הטבות: ארבע אפליקציות, שרת אחד ומקור אמת יחיד">
+<meta property="og:description" content="מאמר עומק על Benefits Wallet: מודל הנתונים, הסורק עם אדם בלולאה, החיפוש שסולח על שגיאות כתיב והבדיקות.">
+<meta property="og:url" content="https://brachi-web.vercel.app/articles/benefits-wallet.html">
+<meta name="theme-color" content="#ECEEE9">
+<link rel="preload" href="/assets/fonts/ibm-plex-sans-hebrew-400-hebrew.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/css/fonts.css">
+<link rel="stylesheet" href="/assets/css/article.css">
+<script src="/assets/js/article.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">דילוג לתוכן המאמר</a>
+
+<header class="masthead">
+  <a class="home" href="/#engineering">ברכי פיטוסי</a>
+  <a class="back" href="/#engineering">חזרה לפורטפוליו</a>
+</header>
+
+<div class="article-head">
+  <h1>ארנק הטבות</h1>
+  <p class="dek">מערכת שמרכזת את כל ההנחות שמגיעות לך מכרטיסי אשראי, ממועדוני לקוחות וממועדוני עובדים, כדי שתיזכרי בהן לפני הקופה ולא אחריה.</p>
+  <p class="meta">זמן קריאה: <span data-reading-time>14</span> דקות. נכתב על בסיס הקוד בריפו <a href="https://github.com/BrachiA/benefits-wallet">BrachiA/benefits-wallet</a>.</p>
+</div>
+
+<div class="layout">
+  <details class="toc">
+    <summary>תוכן המאמר</summary>
+    <nav aria-label="תוכן המאמר"><ol></ol></nav>
+  </details>
+
+  <main id="main" class="article-body">
+    <p>לרובנו יש כמה כרטיסי אשראי, מועדון עובדים ועוד שניים-שלושה מועדוני לקוחות. כל אחד מהם נותן הנחות, חלקן גדולות, ואף אחד לא זוכר אילו. ההטבה שווה משהו רק אם נזכרים בה בזמן, ואחרי התשלום כבר מאוחר מדי. בניתי את Benefits Wallet כמערכת שלמה סביב הבעיה הזו: אפליקציית מובייל למשתמשת, דשבורד ניהול, תוסף Chrome להזנה ידנית ושרת אחד שהוא מקור האמת היחיד לכולם.</p>
+
+    <section class="chapter" aria-labelledby="ch1">
+      <h2 id="ch1">האתגר ההנדסי בשטח, ולמה פתרונות מדף נכשלים</h2>
+
+      <p>על הנייר זו רשימה של הנחות. בפועל, כמעט כל מה שמעניין במערכת הזו נמצא בשאלה <strong>"למי מגיעה ההטבה הזו?"</strong>. הטבה יכולה להיות לכל חברי מועדון מסוים, רק בסניפי תל אביב של מותג מסוים, לכל מי שיש לו כרטיס מסוים בכל מותג, או לשילוב של כמה מאלה. אם מנסים לבטא את זה בעמודות קבועות על טבלת ההטבות, מגיעים מהר מאוד לשכפול הטבות או לעמודות מיוחדות שאף אחד לא זוכר למה נוספו.</p>
+
+      <h3>המידע מפוזר, והמקורות לא משתפים פעולה</h3>
+      <p>ההטבות מגיעות מאתרים של מועדונים, חברות אשראי ורשתות. אין שני אתרים עם אותו HTML. חלקם חוסמים סריקה לפי קצב או לפי User-Agent, חלקם נטענים כולם ב-JavaScript, ולחלקם יש תנאי שימוש שאוסרים סריקה אוטומטית גם כשהנתיב פתוח טכנית. ויש כשל שקט במיוחד: אתר שינה את המבנה שלו, והסורק "מצליח" ומחזיר אפס תוצאות. ריצה ירוקה שלא מחזירה כלום היא הכשל המסוכן ביותר, כי שום דבר לא מתריע.</p>
+
+      <h3>למה לא אגרגטור קיים</h3>
+      <p>אגרגטורים של הטבות שבדקתי מציגים הכול לכולם, או דורשים התחברות לחשבון הבנק. רציתי שהמשתמשת תבחר פעם אחת אילו כרטיסים ומועדונים יש לה, ותראה רק מה שבאמת מגיע לה. הבחירה הזו נשמרת <strong>על המכשיר בלבד</strong>. אין חשבון, אין סיסמה, ולא נשמר שום מידע אישי בשרת. ההחלטה הזו פישטה את המערכת (אין ניהול משתמשים) והעבירה את כל המורכבות לשאלת הנראות בצד השרת.</p>
+    </section>
+
+    <section class="chapter" aria-labelledby="ch2">
+      <h2 id="ch2">ארכיטקטורת המערכת וזרימת הנתונים מקצה לקצה</h2>
+
+      <figure>
+        <svg viewBox="0 0 360 520" role="img" aria-labelledby="fig1t fig1d">
+          <title id="fig1t">ארבע אפליקציות סביב שרת אחד</title>
+          <desc id="fig1d">אפליקציית המובייל, הדשבורד ותוסף Chrome פונים לשרת Express אחד. השרת כותב ל-PostgreSQL, שולח תמונות ל-Cloudflare R2 ומשתמש ב-Gemini לשיפוט כפילויות. הסורק עובר דרך שער ציון ביטחון ותור בדיקה אנושי.</desc>
+          <defs><marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#13252B"/></marker></defs>
+          <g class="fig-node"><rect x="8" y="10" width="108" height="62"/><text x="62" y="37" text-anchor="middle">מובייל</text><text class="sub" x="62" y="57" text-anchor="middle">Expo 54</text></g>
+          <g class="fig-node"><rect x="126" y="10" width="108" height="62"/><text x="180" y="37" text-anchor="middle">דשבורד</text><text class="sub" x="180" y="57" text-anchor="middle">React 18</text></g>
+          <g class="fig-node"><rect x="244" y="10" width="108" height="62"/><text x="298" y="37" text-anchor="middle">תוסף Chrome</text><text class="sub" x="298" y="57" text-anchor="middle">Manifest V3</text></g>
+          <path class="fig-edge" d="M62 72V118H180" /><path class="fig-edge" d="M298 72V118H180"/><path class="fig-edge" d="M180 72V140" marker-end="url(#ah2)"/>
+          <g class="fig-node hot"><rect x="60" y="142" width="240" height="70"/><text x="180" y="170" text-anchor="middle">Backend: Express + TypeScript</text><text class="sub" x="180" y="192" text-anchor="middle">routes, controller, service, repository</text></g>
+          <path class="fig-edge" d="M180 212V250" marker-end="url(#ah2)"/>
+          <path class="fig-edge" d="M300 177H330V250" marker-end="url(#ah2)"/>
+          <path class="fig-edge" d="M60 177H30V250" marker-end="url(#ah2)"/>
+          <g class="fig-node"><rect x="110" y="252" width="140" height="62"/><text x="180" y="279" text-anchor="middle">PostgreSQL</text><text class="sub" x="180" y="299" text-anchor="middle">Prisma 6, pg_trgm</text></g>
+          <g class="fig-node"><rect x="262" y="252" width="90" height="62"/><text x="307" y="279" text-anchor="middle">Gemini</text><text class="sub" x="307" y="299" text-anchor="middle">כפילויות</text></g>
+          <g class="fig-node"><rect x="8" y="252" width="90" height="62"/><text x="53" y="279" text-anchor="middle">R2</text><text class="sub" x="53" y="299" text-anchor="middle">תמונות</text></g>
+          <g class="fig-node ghost"><rect x="60" y="356" width="240" height="44"/><text x="180" y="383" text-anchor="middle">סורק מונחה-קונפיגורציה</text></g>
+          <path class="fig-edge" d="M180 400V424" marker-end="url(#ah2)"/>
+          <g class="fig-node"><rect x="60" y="426" width="240" height="44"/><text x="180" y="453" text-anchor="middle">התאמה ואז ציון ביטחון 0 עד 100</text></g>
+          <path class="fig-edge" d="M120 470V500" marker-end="url(#ah2)"/><path class="fig-edge dash" d="M240 470V500" marker-end="url(#ah2)"/>
+          <text class="fig-label" x="120" y="516" text-anchor="middle">70 ומעלה: פרסום</text>
+          <text class="fig-label" x="240" y="516" text-anchor="middle">מתחת: תור בדיקה</text>
+          <path class="fig-edge dash" d="M180 356V316" marker-end="url(#ah2)"/>
+        </svg>
+        <figcaption>שלושה לקוחות, שרת אחד ומסד נתונים אחד. הסורק לא כותב ישירות להטבות. כל פריט עובר התאמה וציון ביטחון, ורק מעל הסף הוא מתפרסם לבד.</figcaption>
+      </figure>
+
+      <h3>ארבע אפליקציות, אחריות אחת לכל אחת</h3>
+      <ul>
+        <li><strong>מובייל</strong> (React Native, Expo 54, TanStack Query 5): קריאה בלבד. Onboarding של דקה, סינון לפי מה שבחרת, חיפוש, מועדפים.</li>
+        <li><strong>דשבורד ניהול</strong> (React 18, Vite 6, RTL מלא): ניהול הקטלוג ותור הבדיקה של הסורק.</li>
+        <li><strong>תוסף Chrome</strong> (Manifest V3): הזנה ידנית של הטבה מתוך העמוד שהמנהל צופה בו.</li>
+        <li><strong>Backend</strong> (Node.js, Express, TypeScript, Prisma 6, PostgreSQL): מקור האמת היחיד. כל מודול בנוי באותו דפוס, <code>routes → controller → service → repository → dto</code>, כך שהוספת ישות חדשה היא העתקת דפוס ולא המצאה מחדש.</li>
+      </ul>
+
+      <h3>הטבה "נקייה" וכללי תחולה</h3>
+      <p>ההחלטה החשובה ביותר במודל הנתונים: <strong>הטבה לא יודעת למי היא שייכת</strong>. הקישור למועדון, מותג או סניף נעשה דרך טבלה נפרדת, <code>BenefitScope</code>. שורה אחת היא AND בין השדות שמולאו. כמה שורות הן OR ביניהן. שדה ריק פירושו "כל הערכים". כך "הטבה לכל חברי מועדון X בסניפי תל אביב" היא שורה אחת, ו"הטבה לכרטיס Y בכל מותג, או לכל לקוחות מותג Z" היא שתי שורות, בלי לשכפל את ההטבה ובלי עמודות מיוחדות.</p>
+
+      <h3>מקור אמת אחד לשאלת הנראות</h3>
+      <p>הכלל "האם ההטבה תקפה עכשיו, ולמי" ממומש בקובץ אחד, <code>benefitVisibility.ts</code>, וכל מסך משתמש בו: האפליקציה, ההמלצות והחיפוש. זה לא היה כך מההתחלה. ההערה בראש הקובץ מספרת מה קרה כשהכלל היה משוכפל:</p>
+<pre><code><span class="c">// לפני הקובץ הזה הסמנטיקה הזו הייתה משוכפלת בשלושה מקומות</span>
+<span class="c">// (benefit.repository, recommendation.service, search.service),</span>
+<span class="c">// וכל עותק שכח משהו אחר: search לא בדק תפוגה כלל, recommendation</span>
+<span class="c">// השווה מול תאריך שהוקפא בזמן טעינת המודול, ו-benefit.repository</span>
+<span class="c">// איבד את תנאי התפוגה ברגע שהתווסף search (התנגשות מפתח OR</span>
+<span class="c">// ב-spread: המפתח האחרון דרס את הקודם בשקט).</span>
+<span class="c">//</span>
+<span class="c">// כל צרכן חדש חייב לעבור דרך כאן ולא לבנות where משלו.</span>
+
+<span class="k">const</span> LIVE_ENTITY = { deletedAt: <span class="k">null</span>, isActive: <span class="k">true</span> } <span class="k">as const</span>;
+
+<span class="k">const</span> SCOPE_TARGETS_ARE_LIVE: Prisma.BenefitScopeWhereInput = {
+  AND: [
+    { OR: [{ programId: <span class="k">null</span> }, { program: LIVE_ENTITY }] },
+    { OR: [{ brandId: <span class="k">null</span> },   { brand: LIVE_ENTITY }] },
+    { OR: [{ storeId: <span class="k">null</span> },   { store: LIVE_ENTITY }] },
+  ],
+};</code></pre>
+      <span class="code-cap">מתוך <code>apps/backend/src/modules/benefit/benefitVisibility.ts</code>, מקוצר.</span>
+      <p>שלושה באגים שונים, אחד בכל עותק. הבאג השלישי מלמד במיוחד: שני תנאי <code>OR</code> נבנו בנפרד ואוחדו ב-spread של אובייקט. ל-JavaScript לא אכפת שיש שני מפתחות בשם <code>OR</code>, השני פשוט דורס את הראשון. תנאי התפוגה נעלם בלי שום שגיאה. מאז, כל צרכן חדש עובר דרך הפונקציה הזו, ו-<code>SCOPE_TARGETS_ARE_LIVE</code> סוגר מקרה נוסף: מחיקה רכה של מועדון. בלי הבדיקה הזו, שורת ה-scope הייתה ממשיכה להצביע על מועדון מחוק, וההטבות שלו היו נשארות גלויות לנצח.</p>
+    </section>
+
+    <section class="chapter" aria-labelledby="ch3">
+      <h2 id="ch3">התלבטויות הנדסיות ופתרון מקרי קצה קשים</h2>
+
+      <h3>ציון ביטחון: למה לוגריתם ולא קבוע</h3>
+      <p>כל פריט שהסורק אוסף עובר שרשרת החלטה: התאמה להטבה קיימת, ציון ביטחון בין 0 ל-100, ופרסום אוטומטי רק מ-70 ומעלה. כל השאר נכנס לתור בדיקה אנושי, עם נימוקים קריאים שמוצגים בדשבורד. הציון מתחיל ב-100 וכל כלל מנכה בנפרד, כדי שיהיה ברור בדיוק למה פריט סומן.</p>
+      <p>הכלל המעניין הוא שינוי בערך ההנחה. שינוי חד עלול להעיד על טעות סריקה, למשל פרסר שתפס "50" מתוך "1 מתוך 50 קופונים" במקום את ה-10% האמיתיים. בגרסה הראשונה ניכיתי 25 נקודות על כל שינוי מעל 50%. בבדיקות QA התגלה שזה לא מספיק: שינוי מ-10 ל-15 ושינוי מ-10 ל-90 קיבלו בדיוק אותו טיפול, שניהם נשארו על 75, מעל הסף, ו<strong>שינוי של פי 9 התפרסם בלי אדם בלולאה</strong>.</p>
+<pre><code><span class="k">function</span> valueChangeDeduction(previous: number, next: number): number {
+  <span class="k">if</span> (previous === next) <span class="k">return</span> <span class="k">0</span>;
+  <span class="c">// מעבר אל/מ-אפס אינו ניתן לביטוי כיחס, והוא תמיד קפיצה מהותית.</span>
+  <span class="k">if</span> (previous === <span class="k">0</span> || next === <span class="k">0</span>) <span class="k">return</span> MAX_VALUE_CHANGE_DEDUCTION;
+
+  <span class="k">const</span> ratio = Math.max(previous / next, next / previous);
+  <span class="k">if</span> (ratio &lt; ROUTINE_CHANGE_RATIO) <span class="k">return</span> <span class="k">0</span>;          <span class="c">// 1.5</span>
+
+  <span class="k">const</span> raw = Math.round(VALUE_CHANGE_WEIGHT * Math.log2(ratio)); <span class="c">// 25</span>
+  <span class="k">return</span> Math.max(MIN_VALUE_CHANGE_DEDUCTION, Math.min(MAX_VALUE_CHANGE_DEDUCTION, raw));
+}</code></pre>
+      <span class="code-cap">מתוך <code>apps/backend/src/modules/scraper/confidence.service.ts</code>.</span>
+      <p>שלוש החלטות בתוך הפונקציה הזו. <strong>יחס ולא הפרש</strong>, כי מה שמעניין הוא סדר הגודל של הקפיצה (פי 2, פי 4, פי 9), וכך הכלל מתנהג אותו דבר על הנחה של 10% ועל הנחה של 1,000 ש"ח. <strong>סימטרי</strong>, כי ירידה חדה חשודה בדיוק כמו עלייה חדה. ו<strong>לוגריתמי</strong>, עם מקדם שנבחר כך ששינוי של פי 2.5 ומעלה (בדיוק המקרה שהבדיקה בודקת) כבר מוריד את הציון מתחת לסף. הניכוי חסום בין 10 ל-60, ומעבר אל אפס או ממנו מקבל תמיד את הניכוי המרבי.</p>
+      <p>כלל נוסף: הטבה <strong>חדשה</strong> לא מתפרסמת אוטומטית אלא אם למקור הוגדר מראש שיוך ברירת מחדל (מועדון או מותג, וגם קטגוריה). בלי שיוך אין למי לקשר אותה, ושני השדות האלה חובה על הטבה.</p>
+
+      <h3>חיפוש שסולח על שגיאות כתיב בעברית</h3>
+      <p>החיפוש משלב התאמת תת-מחרוזת עם <code>pg_trgm</code> על שמות, תגיות, מילות מפתח ושם הקטגוריה, כדי ש"גלידה" ימצא גם מותג ששייך לקטגוריית "גלידות". את סף הדמיון לא ניחשתי, מדדתי אותו מול המסד:</p>
+<pre><code><span class="c">// SIMILARITY_THRESHOLD נקבע אמפירית מול ה-DB בפועל, לא ניחוש:</span>
+<span class="c">// similarity('גלידה', 'גלדיה') = 0.2. סף ברירת המחדל של pg_trgm</span>
+<span class="c">// (0.3) היה מפספס בדיוק את הדוגמה שהתבקשה. 0.15 תופס שגיאות-כתיב</span>
+<span class="c">// חד-אותיות (הקלדה/סדר אותיות) בלי לפתוח את הסכר לגמרי.</span>
+<span class="k">export const</span> SIMILARITY_THRESHOLD = <span class="k">0.15</span>;</code></pre>
+      <span class="code-cap">מתוך <code>apps/backend/src/modules/search/fuzzyMatch.ts</code>.</span>
+      <p>מקרה הקצה הקשה יותר היה עמוד ריק בטעות. ה-SQL הגולמי מחזיר מועמדים מדורגים לפי דמיון, ואז Prisma מסנן לפי נראות. בחיפוש כללי, ייתכן שרוב המועמדים בעמוד הראשון פגי תוקף, והמשתמשת מקבלת שתי תוצאות כשיש בפועל עשרים. <code>fetchWithBackfill</code> שולף "נגיסה" נוספת של מועמדים כשהסינון ריקן את הקודמת. הוא עוצר כשיש מספיק תוצאות, כשנגמרו המועמדים, או אחרי שלוש נגיסות, כדי שחיפוש שבאמת אין לו תוצאות לא ירוץ לנצח. רוב השאילתות מסתפקות בנגיסה הראשונה, ורק אלה שבאמת נתקלות בסינון כבד משלמות על נגיסה נוספת.</p>
+
+      <h3>התאמה לפני ציון</h3>
+      <p>לפני שמחשבים ציון ביטחון צריך לדעת מה בכלל מסתכלים עליו. <code>matching.service.ts</code> מסווג כל פריט לאחד מארבעה מצבים: <code>DUPLICATE</code> (ראינו בדיוק את זה בריצה קודמת), <code>UPDATE</code> (הטבה קיימת עם שדות שהשתנו, ומחזירים גם את רשימת השדות), <code>UNCHANGED</code> ו-<code>NEW</code>. ההתאמה הראשונה היא לפי מפתח יציב, הצמד של מקור ומזהה חיצוני, ולא לפי טקסט. כותרת של הטבה יכולה להשתנות בניסוח בלי שהיא הפכה להטבה אחרת.</p>
+      <p>מקרה הקצה שהוביל לשלב השני: מנהל יצר הטבה ידנית בדשבורד, ושבוע אחר כך הסורק מצא אותה באתר המקור בפעם הראשונה. לפי המפתח היציב זו הטבה חדשה, ובפועל זו כפילות. לכן, כשאין קישור קודם, נבדק גם slug שנגזר מהכותרת מול הטבות קיימות. ומה שהכללים הדטרמיניסטיים לא תופסים, למשל אותה הטבה בניסוח שונה לגמרי בשני מועדונים, עובר לשיפוט סמנטי של Gemini בתהליך ניקוי כפילויות נפרד. סדר הפעולות הזה מכוון: הכללים הזולים והצפויים קודם, והמודל רק כשאין ברירה.</p>
+      <p>ויש החלטה קטנה שחשובה מאוד: <code>UNCHANGED</code> תמיד עובר. אין שינוי בפועל, אז אין מה לאשר, וזה מונע מתור הבדיקה להתמלא באלפי פריטים שלא השתנו ושמנהל צריך לאשר אחד אחד.</p>
+
+      <h3>סורק שמכבד את המקורות</h3>
+      <p>הסורק מונחה-קונפיגורציה: הוספת מקור היא הגדרת selectors ולא שינוי קוד. לפני כל עמוד הוא בודק <code>robots.txt</code>, ממתין בין בקשות לפי <code>requestDelayMs</code>, מזדהה ב-User-Agent ברור, וכשל בעמוד בודד לא מפיל את הריצה. אבל <code>robots.txt</code> לא משקף התניות חוזיות, ולכן יש שער נפרד: אישור תנאי שימוש אנושי לכל מקור. הבדיקה הטכנית היא רשת ביטחון, לא תחליף.</p>
+
+      <div class="aside-note">
+        <h3>מה עוד לא סגור</h3>
+        <ul>
+          <li>אתרים שנטענים כולם ב-JavaScript: מנגנון <code>renderMode</code> קיים בסכמה, אבל כרגע ממומש רק HTTP. מקור שמוגדר כדפדפן headless מדולג עם אזהרה ברורה ולא נכשל בשקט.</li>
+          <li>כשל רשת בבדיקת <code>robots.txt</code> לא חוסם את הריצה. הוא נרשם בלוג, והשער האמיתי נשאר אישור תנאי השימוש. זו החלטה מודעת, אבל כדאי לדעת עליה.</li>
+          <li>סף הדמיון 0.15 כויל על הקטלוג הנוכחי. עם קטלוג גדול בהרבה ייתכן שצריך לכייל שוב.</li>
+        </ul>
+      </div>
+
+      <h3>AI רק במקומות הנכונים</h3>
+      <p>Gemini משמש לשלוש משימות שבהן כללים דטרמיניסטיים לא מספיקים: שיפוט כפילויות סמנטיות (אותה הטבה בניסוחים שונים בשני מקורות), אימות תמונה וקטגוריה, וסיכום תיאורים. האינטגרציה נכשלת בעדינות: בלי מפתח, המערכת ממשיכה לעבוד והשלב מדולג. מגבלת קצב משותפת חלה על כל הצרכנים של המפתח, כי השכבה החינמית של Gemini מוגבלת. ובסביבת בדיקה אין קריאות רשת אמיתיות למודל.</p>
+    </section>
+
+    <section class="chapter" aria-labelledby="ch4">
+      <h2 id="ch4">בדיקות אוטומטיות, אבטחה ותוצאות מדידות</h2>
+
+      <h3>136 בדיקות מול Postgres אמיתי</h3>
+      <p>136 בדיקות ב-15 קבצים, ב-Vitest, שרצות מול מסד PostgreSQL אמיתי ולא מול mock. החלטתי כך כי הבאגים החשובים במערכת הזו יושבים בדיוק במקום ש-mock מסתיר: בשאילתות. <code>pg_trgm</code>, תנאי OR מקוננים של Prisma ומיון לפי דירוג לא נבדקים באמת בלי מסד אמיתי. הסכמה מוחלת מהמיגרציות עצמן (<code>prisma migrate deploy</code>) ולא מ-<code>db push</code>, כדי שהבדיקות ירוצו מול אותו מבנה בדיוק שיגיע לפרודקשן.</p>
+      <p>ה-setup מריץ TRUNCATE על כל הטבלאות בין מקרי בדיקה. אם מישהו יכוון אותו בטעות למסד אמיתי, זו מחיקה מלאה. לכן יש רשת ביטחון:</p>
+<pre><code><span class="k">const</span> dbName = <span class="k">new</span> URL(url).pathname.slice(<span class="k">1</span>);
+<span class="k">if</span> (!dbName.includes(<span class="s">'test'</span>)) {
+  <span class="k">throw new</span> Error(<span class="s">`סירוב להריץ בדיקות מול DB בשם "${dbName}", שם ה-DB חייב להכיל "test"`</span>);
+}</code></pre>
+      <span class="code-cap">מתוך <code>apps/backend/tests/setup/globalSetup.ts</code>.</span>
+      <p>הבדיקות מכסות את כלל הנראות, עריכת שיוך, סף הפרסום האוטומטי, התאמה בין פריטים, תזמון, חיפוש ו-AI. אחרי באג "פי 9", הבדיקות של ציון הביטחון <strong>ננעלו על קו הגבול</strong>: בדיקה אחת, למשל, מוודאת שציון של 70 בדיוק מתפרסם אוטומטית ושציון של 67 כבר לא, כי הסף כולל את 70 ושינוי של סימן השוואה אחד היה הופך את ההתנהגות. בדיקות factories מקבלות override חלקי, כך שכל בדיקה מציינת רק את מה שרלוונטי לה, ומה שכתוב בבדיקה הוא מה שנבדק. בנוסף, <code>tsc --noEmit</code> עובר נקי בכל ארבע האפליקציות.</p>
+
+      <h3>אבטחה ופרטיות</h3>
+      <ul>
+        <li><strong>הדשבורד מוגן ב-session חתום ב-HMAC</strong>, בלי טבלת משתמשים. יש סיסמה אחת מהסביבה, העוגייה מכילה זמן תפוגה וחתימה, וההשוואה נעשית ב-<code>timingSafeEqual</code> כדי לא לחשוף את החתימה הנכונה דרך הבדלי זמן תגובה. בחרתי בזה במקום JWT כי JWT היה מיותר כאן.</li>
+        <li><strong>Zod על כל קלט</strong>, <code>helmet</code>, CORS מוגדר ותגובות שגיאה אחידות.</li>
+        <li><strong>Soft delete</strong> ו-<code>isActive</code> כשדות נפרדים, ו-Audit Log על שינויים.</li>
+        <li><strong>סודות לא נכנסים לגיט.</strong> <code>.env</code> מוחרג, ו-<code>.env.example</code> מתועד.</li>
+        <li>הפרדת <code>app.ts</code> מ-<code>server.ts</code> מאפשרת להריץ בדיקות בלי לפתוח פורט TCP.</li>
+        <li>אין מידע אישי בשרת. בחירת הכרטיסים והמועדונים נשמרת ב-AsyncStorage על המכשיר.</li>
+      </ul>
+
+      <h3>למה Postgres ולא חיפוש חיצוני</h3>
+      <p>שקלתי מנוע חיפוש ייעודי. ויתרתי עליו כי כלל הנראות חייב לחול גם על החיפוש, והוא חי ב-Postgres. מנוע חיצוני היה דורש לשכפל את הכלל, ואת המחיר של שכפול הכלל הזה כבר שילמתי פעם אחת. <code>pg_trgm</code> נותן סובלנות לשגיאות כתיב בתוך אותה שאילתה שמסננת לפי זכאות, ואינדקס trigram מחזיק את זה מהיר בגודל הקטלוג הנוכחי. אם הקטלוג יגדל בסדר גודל, זו ההחלטה הראשונה שאבדוק מחדש, ולא לפני כן.</p>
+
+      <h3>מה נמדד בפועל</h3>
+      <p>המספרים שאני יכולה לעמוד מאחוריהם הם מספרי הנדסה, לא מספרי שוק: 136 בדיקות ירוקות, ארבע אפליקציות שמתקמפלות נקי, ויומן ריצות מלא של הסורק (<code>ScraperRun</code>, <code>ScrapedItem</code>) שמאפשר לשחזר מה נאסף, מתי ולמה התפרסם או נעצר. התראות מייל יוצאות על ריצות חריגות, כולל ריצה "מוצלחת" עם אפס פריטים.</p>
+
+      <h3>מה הייתי עושה אחרת</h3>
+      <p>הייתי כותבת את <code>benefitVisibility.ts</code> לפני הצרכן השני, לא אחרי השלישי. שלושה באגים שונים בשלושה עותקים של אותו כלל הם השיעור הכי ברור שקיבלתי בפרויקט הזה: ברגע שהיגיון עסקי מופיע פעמיים, הוא כבר חי חיים נפרדים. והייתי מכניסה את בדיקות קו הגבול של ציון הביטחון כבר עם הכלל הראשון, ולא אחרי שבדיקת QA תפסה את מקרה פי 9.</p>
+    </section>
+  </main>
+</div>
+
+<footer class="article-foot">
+  <div class="in">
+    <div>
+      <h2>רוצים לדבר על זה?</h2>
+      <p>אני זמינה לשאלות על הארכיטקטורה, לראיונות ולפרויקטים.</p>
+      <p><a href="https://wa.me/972547568966">וואטסאפ: <span class="ltr">054-756-8966</span></a></p>
+      <p><a href="mailto:Baloo532004@gmail.com" class="ltr">Baloo532004@gmail.com</a></p>
+    </div>
+    <div>
+      <h2>עוד מאמרים</h2>
+      <ul>
+        <li><a href="/articles/multi-ai.html">Multi-AI Dev Team: צוות של מודלי שפה עם גבולות שנאכפים בקוד</a></li>
+        <li><a href="/articles/assistiq.html">AssistIQ: עוזר AI שמקשיב לשיחת שירות בזמן אמת</a></li>
+        <li><a href="/#engineering">חזרה לפורטפוליו</a></li>
+      </ul>
+    </div>
+  </div>
+</footer>
+</body>
+</html>

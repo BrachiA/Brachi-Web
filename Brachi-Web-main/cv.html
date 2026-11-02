@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ברכי פיטוסי (אנגל): קורות חיים</title>
+<meta name="description" content="קורות חיים: ברכי פיטוסי (אנגל), סטודנטית שנה שלישית למדעי המחשב במכללה למינהל, מפתחת Full-Stack ומהנדסת מערכות AI.">
+<link rel="canonical" href="https://brachi-web.vercel.app/cv.html">
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/css/fonts.css">
+<style>
+  :root { --ink:#13252B; --slate:#56675F; --accent:#156A58; --paper:#fff; --hair:rgb(19 37 43 / .2); }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #ECEEE9; color: var(--ink); font: 400 15px/1.55 'IBM Plex Sans Hebrew', system-ui, sans-serif; }
+  .sheet { max-width: 210mm; margin: 24px auto; background: var(--paper); padding: 16mm 15mm; }
+  .bar { max-width: 210mm; margin: 16px auto 0; display: flex; gap: 16px; justify-content: space-between; align-items: center; padding: 0 4px; }
+  .bar a, .bar button { font: inherit; color: var(--ink); }
+  .bar button { min-height: 44px; padding: 0 18px; border-radius: 999px; border: 1.5px solid var(--ink); background: var(--ink); color: #fff; cursor: pointer; }
+  header { display: grid; grid-template-columns: 1fr auto; gap: 4px 24px; align-items: end; border-bottom: 2px solid var(--ink); padding-bottom: 10px; }
+  h1 { font: 700 54px/.9 'Karantina', sans-serif; margin: 0; }
+  .role { font-weight: 500; margin: 4px 0 0; }
+  .contact { text-align: left; font-size: 13.5px; line-height: 1.7; }
+  .contact a { color: inherit; text-decoration: none; }
+  h2 { font: 700 26px/1 'Karantina', sans-serif; margin: 18px 0 6px; color: var(--accent); }
+  p { margin: 0; }
+  .summary { margin-top: 12px; }
+  .item { display: grid; grid-template-columns: 1fr; padding: 6px 0; border-bottom: 1px solid var(--hair); }
+  .item:last-child { border-bottom: 0; }
+  .item h3 { margin: 0; font-size: 15px; font-weight: 600; }
+  .item p { color: #2c3b40; }
+  .skills { display: grid; grid-template-columns: 9.5em 1fr; gap: 3px 14px; }
+  .skills dt { font-weight: 600; }
+  .skills dd { margin: 0; direction: ltr; text-align: right; }
+  @page { size: A4; margin: 0; }
+  @media print {
+    body { background: #fff; }
+    .bar { display: none; }
+    .sheet { margin: 0; max-width: none; padding: 14mm 14mm; }
+    a { color: inherit; }
+  }
+  @media (max-width: 640px) {
+    .sheet { padding: 20px 16px; margin: 12px 0; }
+    header { grid-template-columns: 1fr; }
+    .contact { text-align: right; }
+    .skills { grid-template-columns: 1fr; }
+    .skills dd { margin-bottom: 6px; }
+  }
+</style>
+</head>
+<body>
+<div class="bar"><a href="/#engineering/cv">חזרה לאתר</a><button type="button" id="print">הדפסה או שמירה כ-PDF</button></div>
+<main class="sheet">
+  <header>
+    <div>
+      <h1>ברכי פיטוסי (אנגל)</h1>
+      <p class="role">מפתחת Full-Stack ומהנדסת מערכות AI. סטודנטית שנה ג׳ למדעי המחשב.</p>
+    </div>
+    <div class="contact" dir="ltr">
+      <a href="tel:+972547568966">054-756-8966</a><br>
+      <a href="mailto:Baloo532004@gmail.com">Baloo532004@gmail.com</a><br>
+      <a href="https://github.com/BrachiA">github.com/BrachiA</a><br>
+      <a href="https://brachi-web.vercel.app">brachi-web.vercel.app</a>
+    </div>
+  </header>
+
+  <p class="summary">אני בונה מערכות מאפס ועד פרודקשן: תוסף VS Code שמתזמר צוות של מודלי שפה, פלטפורמה עם ארבעה לקוחות מול שרת אחד, ועוזר שיחה בזמן אמת. אני כותבת בדיקות לפני פיצ׳רים, ומתעדת החלטות כדי שאפשר יהיה לבדוק אותן.</p>
+
+  <h2>פרויקטים נבחרים</h2>
+  <div class="item"><h3>Multi-AI Dev Team, תוסף VS Code</h3><p>Orchestrator שמנהל מנהל, מתכנת, מעצבים ומבקרים מ-Anthropic, Gemini, OpenAI ו-xAI. אכיפת מכסות בשלוש שכבות, prompt caching, loopGuard שמזהה שגיאות זהות אחרי נרמול, עריכה כירורגית עם edit_file, CSP עם nonce ובידוד קבצים לפי תפקיד. TypeScript בלי תלויות ריצה, 579 בדיקות, CI ב-GitHub Actions.</p></div>
+  <div class="item"><h3>Benefits Wallet, ארנק הטבות</h3><p>ארבעה לקוחות (React 18 RTL, Expo 54, Chrome MV3) מול Backend ב-Express ו-TypeScript, עם Prisma 6 ו-PostgreSQL. חיפוש מטושטש ב-pg_trgm, סורק עם robots.txt וציון ביטחון, ו-Gemini לזיהוי כפילויות. 136 בדיקות אינטגרציה מול Postgres אמיתי.</p></div>
+  <div class="item"><h3>AssistIQ, עוזר שיחה בזמן אמת</h3><p>‎.NET 8, SignalR ו-proxy של WebSocket ל-Deepgram (המפתח לא מגיע לדפדפן). Grok בסטרימינג עם flush בסוף מילה או כל 150ms, היסטוריה נפרדת לכל חיבור, סינון הד, ולולאת למידה באישור אנושי. בועה צפה כתוסף Chrome.</p></div>
+  <div class="item"><h3>אתרים ללקוחות</h3><p>yael-music-official (Next.js 16, React 19, Supabase), חנות ANGEL Diamond Jewelry (Next.js 16, Supabase RLS, Resend), והאתר הזה.</p></div>
+
+  <h2>ניסיון</h2>
+  <div class="item"><h3>בודקת פרויקטים תכנותיים, החוג למדעי המחשב, המכללה למינהל</h3><p>בודקת קוד של סטודנטים: ארכיטקטורה, מקרי קצה ואמינות, וכותבת ציון ומשוב.</p></div>
+  <div class="item"><h3>מפתחת עצמאית</h3><p>אתרים ומערכות ללקוחות, מאפיון ועד העלאה לאוויר ותחזוקה.</p></div>
+  <div class="item"><h3>מייסדת ויו״ר אגודת הסטודנטים בקמפוס</h3><p>הקמתי את האגודה ועמדתי בראשה 18 חודשים.</p></div>
+  <div class="item"><h3>אנליסטית נתונים, ליאור אדיקה</h3><p>ניתוח נתונים ודוחות.</p></div>
+
+  <h2>השכלה</h2>
+  <div class="item"><h3>B.Sc. מדעי המחשב, המכללה למינהל</h3><p>שנה שלישית. שנתיים ראשונות במרכז האקדמי לב.</p></div>
+
+  <h2>כישורים</h2>
+  <dl class="skills">
+    <dt>שפות</dt><dd>TypeScript, JavaScript, C#, SQL, Python</dd>
+    <dt>Backend וזמן אמת</dt><dd>Node.js, Express, .NET 8, ASP.NET Core, SignalR, WebSockets, Zod</dd>
+    <dt>AI וסוכנים</dt><dd>Multi-agent orchestration, prompt caching, SSE streaming, Claude / Gemini / OpenAI / Grok APIs, Deepgram</dd>
+    <dt>Frontend ותוספים</dt><dd>React, Next.js, React Native + Expo, VS Code Extension API, Chrome MV3, RTL</dd>
+    <dt>נתונים ואבטחה</dt><dd>PostgreSQL, pg_trgm, Prisma, Supabase + RLS, Vitest, CSP, GitHub Actions</dd>
+  </dl>
+</main>
+<script>
+  document.getElementById('print').addEventListener('click', () => window.print());
+  if (new URLSearchParams(location.search).get('print') === '1') {
+    (document.fonts ? document.fonts.ready : Promise.resolve()).then(() => setTimeout(() => window.print(), 300));
+  }
+  if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('/sw.js').catch(() => {});
+</script>
+</body>
+</html>
