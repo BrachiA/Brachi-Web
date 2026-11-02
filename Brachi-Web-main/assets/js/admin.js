@@ -17,7 +17,7 @@ const K_FAILS = 'bp-admin-fails';                   // { n, until }
 const K_SESSION = 'bp-admin-session';               // sessionStorage: expiry time
 const K_DRAFT = 'bp-admin-draft';                   // the edited list (without local files)
 const K_CLOUD = 'bp-admin-r2';                      // { accountId, bucket, publicBase, prefix }; no keys
-const K_KEYS = 'bp-admin-r2-keys';                  // sessionStorage only: { accessKeyId, secret }
+const K_KEYS = 'bp-admin-r2-keys';                  // localStorage of this browser only (the owner's choice): { accessKeyId, secret }
 const ITER = 210000;
 const IDLE_MS = 30 * 60 * 1000;
 const SESSION_MS = IDLE_MS;   // sliding: each action renews it, so a reload after 30 idle minutes asks for the password again
@@ -263,8 +263,15 @@ export async function r2Upload({ cfg, keys, key, blob, contentType, cacheControl
   return joinUrl(cfg.publicBase, key);
 }
 
-const readCfg = () => ls.get(K_CLOUD, { accountId: '', bucket: mediaConfig.r2Bucket || '', publicBase: mediaConfig.r2PublicBase || '', prefix: mediaConfig.r2Prefix || '' });
-const readKeys = () => { try { return JSON.parse(ss.get(K_KEYS) || 'null'); } catch { return null; } };
+const readCfg = () => {
+  // Defaults from the code (account, bucket, public base), plus anything saved in the panel
+  const d = { accountId: mediaConfig.r2AccountId || '', bucket: mediaConfig.r2Bucket || '', publicBase: mediaConfig.r2PublicBase || '', prefix: mediaConfig.r2Prefix || '' };
+  const saved = ls.get(K_CLOUD, {}) || {};
+  const out = { ...d };
+  for (const k of Object.keys(d)) if (saved[k]) out[k] = saved[k];
+  return out;
+};
+const readKeys = () => ls.get(K_KEYS) || (() => { try { return JSON.parse(ss.get(K_KEYS) || 'null'); } catch { return null; } })();
 const hasKeys = () => { const k = readKeys(); const c = readCfg(); return !!(k && k.accessKeyId && k.secret && c.accountId && c.bucket && c.publicBase); };
 
 // ═══ The editor ═════════════════════════════════════════════════════════
@@ -378,8 +385,7 @@ export function logout(msg) {
   wall.setList(state.publicList);               // the public view shows only what has been published
   if (document.body.dataset.room === 'ai-video' && wall.enter) wall.enter();
   document.body.classList.remove('is-admin');
-  ss.del(K_SESSION);
-  ss.del(K_KEYS);
+  ss.del(K_SESSION);               // the R2 keys stay saved in this browser, as the owner chose
   state = null;
   const lock = document.querySelector('[data-admin-lock]');
   if (lock) lock.focus();
@@ -404,7 +410,7 @@ function buildBar() {
   bar.innerHTML = `
     <p class="adm-status"><b>מצב עריכה:</b> <span data-count></span></p>
     <div class="adm-bar-actions">
-      <button type="button" class="btn btn-accent" data-publish>שמור ופרסם ל-R2</button>
+      <button type="button" class="btn btn-accent" data-publish>שמור ופרסם לענן</button>
       <button type="button" class="btn btn-line" data-cloud>הגדרות ענן</button>
       <button type="button" class="btn btn-line" data-download>הורדת videos-manifest.json</button>
       <button type="button" class="btn btn-line" data-pw>החלפת סיסמת מנהל</button>
@@ -747,7 +753,7 @@ function cloudDrawer() {
         <p class="adm-note">בלי מפתחות: גוררים סרטונים למשבצות, לוחצים "הורדת videos-manifest.json" ומעלים את הקבצים בלוח הבקרה של R2. עם מפתחות: כפתור אחד מעלה הכול.</p>
         <label>Access Key ID<input name="accessKeyId" dir="ltr" autocomplete="off" spellcheck="false"></label>
         <label>Secret Access Key<input name="secret" type="password" dir="ltr" autocomplete="off" spellcheck="false"></label>
-        <p class="adm-note">המפתחות נשמרים רק בלשונית הזו (sessionStorage), לא בקוד ולא אחרי סגירה. מומלץ ליצור ב-R2 טוקן API מוגבל לדלי הזה בלבד, עם הרשאת Object Read &amp; Write.</p>
+        <p class="adm-note">המפתחות נשמרים בדפדפן הזה בלבד (localStorage), כך שמזינים אותם פעם אחת. הם לא נכנסים לקוד ולא נשלחים לשום מקום חוץ מ-Cloudflare. כדאי שהטוקן יהיה מוגבל לדלי brachi2026 בלבד, עם הרשאת Object Read &amp; Write, ולא להזין אותו במחשב משותף.</p>
       </fieldset>
       <details class="adm-help">
         <summary>איך מגדירים את זה (פעם אחת)</summary>
@@ -763,7 +769,7 @@ function cloudDrawer() {
       <p class="adm-err" role="alert"></p>
       <div class="adm-actions">
         <button type="submit" class="btn btn-ink">שמירה</button>
-        <button type="button" class="btn btn-line" data-forget>מחיקת המפתחות מהלשונית</button>
+        <button type="button" class="btn btn-line" data-forget>מחיקת המפתחות מהדפדפן</button>
         <button type="button" class="btn btn-line" data-cancel>סגירה</button>
       </div>
     </form>`, { cls: 'adm-drawer', label: 'הגדרות ענן' });
@@ -772,9 +778,9 @@ function cloudDrawer() {
   d.querySelector('input[name=secret]').value = keys.secret || '';
   d.querySelector('[data-cancel]').addEventListener('click', () => d.close());
   d.querySelector('[data-forget]').addEventListener('click', () => {
-    ss.del(K_KEYS);
+    ls.del(K_KEYS); ss.del(K_KEYS);
     d.querySelector('input[name=accessKeyId]').value = ''; d.querySelector('input[name=secret]').value = '';
-    updateBar(); toast('המפתחות נמחקו מהלשונית.');
+    updateBar(); toast('המפתחות נמחקו מהדפדפן הזה.');
   });
   d.querySelector('form').addEventListener('submit', (e) => {
     e.preventDefault();
@@ -792,7 +798,8 @@ function cloudDrawer() {
     const secret = String(f.get('secret') || '').trim();
     if ((accessKeyId || secret) && !(accessKeyId && secret && accountId)) { err.textContent = 'להעלאה ישירה צריך את שלושתם: Account ID, Access Key ID ו-Secret Access Key.'; return; }
     ls.set(K_CLOUD, { accountId, bucket, publicBase, prefix });
-    if (accessKeyId && secret) ss.set(K_KEYS, JSON.stringify({ accessKeyId, secret })); else ss.del(K_KEYS);
+    if (accessKeyId && secret) ls.set(K_KEYS, { accessKeyId, secret }); else ls.del(K_KEYS);
+    ss.del(K_KEYS);
     d.close();
     updateBar();
     toast(hasKeys() ? 'ההגדרות נשמרו. אפשר לפרסם ישירות ל-R2.' : 'ההגדרות נשמרו. בלי מפתחות: גררי סרטונים ולחצי "הורדת videos-manifest.json".');

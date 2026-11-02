@@ -17,6 +17,7 @@ export const mediaConfig = {
   cloudinaryCloud: '',   // e.g. 'brachi-studio'
   // Cloudflare R2: once r2PublicBase is set, the site reads the video list published from the editor
   // at <r2PublicBase>/<r2Prefix>videos-manifest.json (the bucket needs CORS GET for the site's origin).
+  r2AccountId: '4191fa0f115c567f9f99b64d9a7be0d6',   // S3 endpoint: https://<id>.r2.cloudflarestorage.com/<bucket>
   r2Bucket: 'brachi2026',
   r2PublicBase: 'https://pub-c26cb8afb1234f4ca8ee24441c393752.r2.dev',
   r2Prefix: '',
