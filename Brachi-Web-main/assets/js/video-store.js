@@ -8,14 +8,14 @@ import { aiVideos, mediaConfig } from './media-manifest.js';
 const MAX_SLOTS = 60;
 const str = (v, max = 160) => (typeof v === 'string' ? v.replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, max) : '');
 
-/** Accepts only https:/http: or a site-relative path. Rejects javascript:, data:, blob: and the like. */
+/** Accepts only https: or a site-relative path. Rejects javascript:, data:, blob: and the like. */
 export function safeUrl(u) {
   const s = str(u, 600);
   if (!s) return '';
   if (s.startsWith('/') && !s.startsWith('//')) return s;
   try {
     const url = new URL(s);
-    return url.protocol === 'https:' || url.protocol === 'http:' ? url.href : '';
+    return url.protocol === 'https:' ? url.href : '';   // http would be blocked as mixed content on an https page
   } catch { return ''; }
 }
 

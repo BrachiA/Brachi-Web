@@ -8,8 +8,8 @@
 // or in localStorage (sessionStorage only, for the life of the tab). Someone who gets past the lock edits only their own browser.
 
 import { loadPublicList, sanitizeList, sanitizeSlot, safeUrl, gcsManifestUrl } from './video-store.js';
-import { mediaConfig } from './media-manifest.js';
-import { esc, categoryLabel } from './video-wall.js';
+import { mediaConfig, CATEGORY_LABEL } from './media-manifest.js';
+import { esc } from './video-wall.js';
 
 const DEFAULT_PASSWORD = 'brachi2026!';           // used only until the first password change
 const K_CRED = 'bp-admin-cred';                     // { v, salt, hash, iter }
@@ -19,8 +19,8 @@ const K_DRAFT = 'bp-admin-draft';                   // the edited list (without 
 const K_CLOUD = 'bp-admin-cloud';                   // { bucket, prefix }; no token
 const K_TOKEN = 'bp-admin-token';                   // sessionStorage only
 const ITER = 210000;
-const SESSION_MS = 2 * 60 * 60 * 1000;
 const IDLE_MS = 30 * 60 * 1000;
+const SESSION_MS = IDLE_MS;   // sliding: each action renews it, so a reload after 30 idle minutes asks for the password again
 const TOOLS = ['Kling AI', 'Google Flow', 'Runway'];
 
 const $ = (s, r = document) => r.querySelector(s);
@@ -204,7 +204,43 @@ export function makePoster(file, width = 360) {
 }
 
 // ── GCS upload (JSON API, multipart) ──────────────────────────────────────
-export async function gcsUpload({ bucket, token, name, blob, contentType, cacheControl }) {
+const RESUMABLE_MIN = 8 * 1024 * 1024;
+function gcsError(status, bucket) {
+  if (status === 401) return new Error('הטוקן לא תקף או שפג תוקפו (טוקן תקף כשעה). הפיקי טוקן חדש.');
+  if (status === 403) return new Error('לחשבון של הטוקן אין הרשאת כתיבה לדלי הזה.');
+  if (status === 404) return new Error(`הדלי "${bucket}" לא נמצא.`);
+  return new Error(`ההעלאה נכשלה (${status}).`);
+}
+const BLOCKED = 'הדפדפן חסם את הבקשה. בדרך כלל זה אומר שלדלי לא הוגדר CORS (ההוראות בהגדרות הענן).';
+const publicUrl = (bucket, name) => `https://storage.googleapis.com/${encodeURIComponent(bucket)}/${name.split('/').map(encodeURIComponent).join('/')}`;
+
+/** Resumable upload: opens a session, then sends the file in one PUT (XHR, for progress). Google recommends it for large files. */
+async function gcsResumable({ bucket, token, name, blob, contentType, cacheControl, onProgress }) {
+  let init;
+  try {
+    init = await fetch(`https://storage.googleapis.com/upload/storage/v1/b/${encodeURIComponent(bucket)}/o?uploadType=resumable`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json; charset=UTF-8', 'X-Upload-Content-Type': contentType },
+      body: JSON.stringify({ name, contentType, cacheControl }),
+    });
+  } catch { throw new Error(BLOCKED); }
+  if (!init.ok) throw gcsError(init.status, bucket);
+  const session = init.headers.get('Location');
+  if (!session) throw new Error('הדלי לא החזיר כתובת העלאה. צריך להוסיף "Location" ל-responseHeader ב-CORS.');
+  await new Promise((resolve, reject) => {
+    const x = new XMLHttpRequest();
+    x.open('PUT', session);
+    x.setRequestHeader('Content-Type', contentType);
+    x.upload.onprogress = (e) => { if (e.lengthComputable && onProgress) onProgress(e.loaded / e.total); };
+    x.onload = () => (x.status >= 200 && x.status < 300 ? resolve() : reject(gcsError(x.status, bucket)));
+    x.onerror = () => reject(new Error('ההעלאה נקטעה. בדקי את החיבור ונסי שוב.'));
+    x.send(blob);
+  });
+  return publicUrl(bucket, name);
+}
+
+export async function gcsUpload({ bucket, token, name, blob, contentType, cacheControl, onProgress }) {
+  if (blob.size >= RESUMABLE_MIN) return gcsResumable({ bucket, token, name, blob, contentType, cacheControl, onProgress });
   const boundary = 'bp' + crypto.getRandomValues(new Uint32Array(2)).join('');
   const meta = JSON.stringify({ name, contentType, cacheControl });
   const body = new Blob([
@@ -231,8 +267,13 @@ export async function gcsUpload({ bucket, token, name, blob, contentType, cacheC
 // ═══ The editor ═════════════════════════════════════════════════════════
 let state = null; // { draft, pending: Map, wallP, publicList, root, editorEl, bar, idleT }
 
-export async function openAdmin(hooks) {
-  if (state) { focusEditor(); return; }
+let opening = null;
+export function openAdmin(hooks) {
+  if (state) { focusEditor(); return Promise.resolve(); }
+  if (!opening) opening = openAdminInner(hooks).finally(() => { opening = null; });
+  return opening;
+}
+async function openAdminInner(hooks) {
   await ensureCss();
   if (!sessionValid()) {
     const r = await loginDialog();
@@ -247,26 +288,42 @@ export async function openAdmin(hooks) {
 }
 
 /** On page load: if this tab is already logged in, return to editing mode */
-export async function resumeIfActive(hooks) {
-  if (!sessionValid()) return false;
-  await ensureCss();
-  await startEditor(hooks);
-  return true;
+export function resumeIfActive(hooks) {
+  if (!sessionValid() || state) return Promise.resolve(false);
+  if (!opening) opening = (async () => { await ensureCss(); await startEditor(hooks); return true; })().finally(() => { opening = null; });
+  return opening;
+}
+
+// A draft is saved together with a fingerprint of the published list it was based on
+const sig = (list) => JSON.stringify(list.map((s) => [s.id, s.title, s.subtitle, s.category, s.tool, s.src, s.poster]));
+function readDraft() {
+  const raw = ls.get(K_DRAFT);
+  if (!raw) return null;
+  const slots = sanitizeList(Array.isArray(raw) ? raw : raw.slots);
+  return slots && slots.length ? { slots, base: Array.isArray(raw) ? null : raw.base } : null;
 }
 
 async function startEditor(hooks) {
+  if (state) return;
   hooks.go('ai-video');
   const wall = await hooks.getWall();
   const publicList = await loadPublicList();
-  const saved = sanitizeList(ls.get(K_DRAFT));
+  if (state) return;
+  const saved = readDraft();
+  const pubSig = sig(publicList);
+  // A local draft wins only if it was built on the list that is published now. Otherwise the published list wins, and the draft is offered for restore.
+  const staleDraft = saved && saved.base !== pubSig && sig(saved.slots) !== pubSig ? saved : null;
+  const useDraft = saved && !staleDraft;
   const root = document.querySelector('[data-room-panel="ai-video"]');
   state = {
-    hooks, wall, root,
+    hooks, wall, root, staleDraft, baseSig: pubSig,
     publicList: publicList.map((s) => ({ ...s })),
-    draft: (saved && saved.length ? saved : publicList).map((s) => ({ ...s })),
+    draft: (useDraft ? saved.slots : publicList).map((s) => ({ ...s })),
     pending: new Map(),
     dirty: false,
+    publishing: false,
   };
+  state.dirty = sig(state.draft) !== pubSig;
   document.body.classList.add('is-admin');
   if (wall.leave) wall.leave();                // stop playback on the public wall
   root.querySelector('.wall-river').hidden = true;
@@ -285,8 +342,9 @@ async function startEditor(hooks) {
 
 function focusEditor() {
   if (!state) return;
-  state.hooks.go('ai-video');
-  requestAnimationFrame(() => state.editorEl.scrollIntoView({ block: 'start' }));
+  const st = state;
+  st.hooks.go('ai-video');
+  requestAnimationFrame(() => { if (state === st) st.editorEl.scrollIntoView({ block: 'start' }); });
 }
 
 function beforeUnload(e) {
@@ -360,6 +418,16 @@ function buildBar() {
   });
   bar.querySelector('[data-cloud]').addEventListener('click', () => cloudDrawer());
   bar.querySelector('[data-publish]').addEventListener('click', () => publish());
+  if (state.staleDraft) {
+    const n = document.createElement('p');
+    n.className = 'adm-stale';
+    n.innerHTML = 'יש טיוטה מקומית ישנה מהרשימה שמפורסמת עכשיו. מוצגת הרשימה המפורסמת. <button type="button" class="link-btn" data-restore>שחזור הטיוטה</button> <button type="button" class="link-btn" data-discard>מחיקת הטיוטה</button>';
+    bar.prepend(n);
+    n.querySelector('[data-restore]').addEventListener('click', () => {
+      state.draft = state.staleDraft.slots.map((x) => ({ ...x })); state.staleDraft = null; n.remove(); saveDraft(); renderEditor();
+    });
+    n.querySelector('[data-discard]').addEventListener('click', () => { state.staleDraft = null; ls.del(K_DRAFT); n.remove(); });
+  }
   bar.querySelector('[data-download]').addEventListener('click', downloadManifest);
   updateBar();
 }
@@ -372,8 +440,8 @@ function updateBar() {
 }
 
 function saveDraft() {
-  state.dirty = true;
-  ls.set(K_DRAFT, state.draft);
+  state.dirty = sig(state.draft) !== sig(state.publicList);
+  ls.set(K_DRAFT, { base: state.baseSig, slots: state.draft });
   updateBar();
 }
 
@@ -387,7 +455,7 @@ function renderEditor() {
   add.className = 'ed-add-wrap';
   add.innerHTML = '<button type="button" class="ed-add"><span aria-hidden="true">+</span>הוספת משבצת סרטון חדשה</button>';
   add.querySelector('button').addEventListener('click', () => {
-    state.draft.push(sanitizeSlot({ id: 'slot-' + Date.now().toString(36), title: 'משבצת חדשה', category: 'רילס לעסק', tool: 'Kling AI' }));
+    state.draft.push(sanitizeSlot({ id: 'slot-' + Date.now().toString(36), title: 'משבצת חדשה', category: 'reel', tool: 'Kling AI' }));
     saveDraft();
     renderEditor();
     const cards = ed.querySelectorAll('.ed-card');
@@ -403,7 +471,7 @@ function mediaHtml(slot) {
   const p = state.pending.get(slot.id);
   const vsrc = p ? p.videoUrl : slot.src;
   const poster = p ? p.posterUrl : slot.poster;
-  if (vsrc) return `<video class="ed-video" muted loop playsinline autoplay preload="metadata" src="${esc(vsrc)}" ${poster ? `poster="${esc(poster)}"` : ''}></video>`;
+  if (vsrc) return `<video class="ed-video" muted loop playsinline ${p ? 'autoplay preload="auto"' : 'preload="none"'} src="${esc(vsrc)}" ${poster ? `poster="${esc(poster)}"` : ''}></video>`;
   return '<span class="pending-glow" aria-hidden="true"></span>';
 }
 
@@ -435,7 +503,7 @@ function slotCard(slot, i) {
       <span class="ed-chips" role="group" aria-label="בחירת כלי">${TOOLS.map((t) => `<button type="button" class="ed-chip" data-tool="${t}" aria-pressed="${slot.tool === t}">${t}</button>`).join('')}</span>
       <span class="phone-title ed-field" data-k="title" data-ph="כותרת">${esc(slot.title)}</span>
       <span class="phone-sub ed-field" data-k="subtitle" data-ph="תיאור קצר (לא חובה)">${esc(slot.subtitle)}</span>
-      <span class="phone-cat ed-field" data-k="category" data-ph="קטגוריה">${esc(categoryLabel(slot.category))}</span>
+      <span class="ed-chips ed-cats" role="group" aria-label="קטגוריה, משבצת #${n}">${Object.entries(CATEGORY_LABEL).map(([k, l]) => `<button type="button" class="ed-chip" data-cat="${k}" aria-pressed="${slot.category === k}">${esc(l)}</button>`).join('')}</span>
       <label class="ed-src">מקור הווידאו
         <input type="url" dir="ltr" data-k="src" value="${esc(p ? '' : slot.src)}" placeholder="${p ? esc(p.file.name) + ' (מקומי)' : 'https://storage.googleapis.com/...'}">
       </label>
@@ -460,8 +528,13 @@ function slotCard(slot, i) {
       saveDraft();
     });
   }
-  const syncChips = () => card.querySelectorAll('.ed-chip').forEach((c) => c.setAttribute('aria-pressed', String(c.dataset.tool === slot.tool)));
-  card.querySelectorAll('.ed-chip').forEach((c) => c.addEventListener('click', () => {
+  const syncChips = () => card.querySelectorAll('.ed-chip[data-tool]').forEach((c) => c.setAttribute('aria-pressed', String(c.dataset.tool === slot.tool)));
+  card.querySelectorAll('.ed-chip[data-cat]').forEach((c) => c.addEventListener('click', () => {
+    slot.category = c.dataset.cat;
+    card.querySelectorAll('.ed-chip[data-cat]').forEach((x) => x.setAttribute('aria-pressed', String(x === c)));
+    saveDraft();
+  }));
+  card.querySelectorAll('.ed-chip[data-tool]').forEach((c) => c.addEventListener('click', () => {
     slot.tool = c.dataset.tool;
     card.querySelector('[data-k="tool"]').textContent = slot.tool;
     syncChips(); saveDraft();
@@ -487,7 +560,8 @@ function slotCard(slot, i) {
     state.draft.splice(state.draft.indexOf(slot), 1);
     saveDraft(); renderEditor();
     const cards = state.editorEl.querySelectorAll('.ed-card');
-    (cards[Math.min(i, cards.length - 1)] || state.editorEl.querySelector('.ed-add')).focus();
+    const next = cards[Math.min(i, cards.length - 1)];
+    (next ? next.querySelector('.ed-del') : state.editorEl.querySelector('.ed-add')).focus();
   });
 
   // Move buttons
@@ -524,8 +598,16 @@ function slotCard(slot, i) {
     if (from >= 0 && from !== i) move(from, i);
   });
 
-  // Click/keyboard to choose a file
+  // A remote video plays only on hover/focus, so the editor does not open dozens of decoders at once
   const drop = card.querySelector('.ed-drop');
+  const vid = drop.querySelector('.ed-video');
+  if (vid && !p) {
+    const play = () => { const r = vid.play(); if (r && r.catch) r.catch(() => {}); };
+    const pause = () => vid.pause();
+    drop.addEventListener('pointerenter', play); drop.addEventListener('pointerleave', pause);
+    drop.addEventListener('focus', play); drop.addEventListener('blur', pause);
+  }
+  // Click/keyboard to choose a file
   const fileInput = drop.querySelector('input[type=file]');
   drop.addEventListener('click', () => fileInput.click());
   drop.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput.click(); } });
@@ -583,7 +665,7 @@ function downloadManifest() {
   setTimeout(() => URL.revokeObjectURL(a.href), 2000);
 }
 
-const CORS_JSON = '[{"origin":["https://brachi-web.vercel.app"],"method":["GET","POST"],"responseHeader":["Content-Type","Authorization"],"maxAgeSeconds":3600}]';
+const CORS_JSON = '[{"origin":["https://brachi-web.vercel.app"],"method":["GET","POST","PUT"],"responseHeader":["Content-Type","Authorization","Location","X-Upload-Content-Type"],"maxAgeSeconds":3600}]';
 
 function cloudDrawer() {
   const cfg = ls.get(K_CLOUD, { bucket: mediaConfig.gcsBucket || '', prefix: mediaConfig.gcsPrefix || 'brachi-web/' });
@@ -593,7 +675,7 @@ function cloudDrawer() {
       <label>שם הדלי (Bucket)<input name="bucket" dir="ltr" required pattern="[a-z0-9][a-z0-9._-]{1,61}[a-z0-9]" value="${esc(cfg.bucket)}" placeholder="brachi-videos"></label>
       <label>תיקייה בתוך הדלי<input name="prefix" dir="ltr" value="${esc(cfg.prefix)}" placeholder="brachi-web/"></label>
       <label>Access token (נשמר רק בלשונית הזו, לא בקוד ולא בדפדפן אחרי סגירה)
-        <input name="token" type="password" dir="ltr" autocomplete="off" value="${esc(ss.get(K_TOKEN) || '')}" placeholder="ya29...."></label>
+        <input name="token" type="password" dir="ltr" autocomplete="off" placeholder="ya29...."></label>
       <details class="adm-help">
         <summary>איך מגדירים את זה (פעם אחת)</summary>
         <ol>
@@ -604,6 +686,7 @@ gcloud storage buckets update gs://BUCKET --cors-file=cors.json</pre></li>
           <li>בכל פעם שמפרסמים, מפיקים טוקן (תקף כשעה) ומדביקים אותו כאן:
             <pre dir="ltr">gcloud auth print-access-token</pre></li>
           <li>כדי שהאתר הציבורי יקרא את הרשימה מהדלי, שם הדלי צריך להופיע פעם אחת ב-<code>assets/js/media-manifest.js</code> (<code>gcsBucket</code>).</li>
+          <li>אם עורכים מכתובת נוספת (דומיין משלך או תצוגה מקדימה של Vercel), מוסיפים אותה לרשימת ה-<code>origin</code> ב-CORS.</li>
         </ol>
       </details>
       ${cfg.bucket && cfg.bucket !== mediaConfig.gcsBucket ? `<p class="adm-note adm-warn">האתר הציבורי עוד לא קורא מהדלי "${esc(cfg.bucket)}". אחרי הפרסום הראשון צריך לכתוב את שמו ב-media-manifest.js.</p>` : ''}
@@ -613,6 +696,7 @@ gcloud storage buckets update gs://BUCKET --cors-file=cors.json</pre></li>
         <button type="button" class="btn btn-line" data-cancel>סגירה</button>
       </div>
     </form>`, { cls: 'adm-drawer', label: 'הגדרות ענן' });
+  d.querySelector('input[name=token]').value = ss.get(K_TOKEN) || '';
   d.querySelector('[data-cancel]').addEventListener('click', () => d.close());
   d.querySelector('form').addEventListener('submit', (e) => {
     e.preventDefault();
@@ -632,9 +716,14 @@ gcloud storage buckets update gs://BUCKET --cors-file=cors.json</pre></li>
 }
 
 async function publish() {
+  if (!state || state.publishing) return;
   const cfg = ls.get(K_CLOUD);
   const token = ss.get(K_TOKEN);
   if (!cfg || !cfg.bucket || !token) { toast('קודם צריך להגדיר דלי וטוקן.'); cloudDrawer(); return; }
+  const st = state;
+  st.publishing = true;
+  const pubBtn = st.bar.querySelector('[data-publish]');
+  pubBtn.disabled = true;
   const d = dialog(`
     <div class="adm-form">
       <h2>פרסום לענן</h2>
@@ -644,36 +733,49 @@ async function publish() {
     </div>`, { label: 'פרסום לענן' });
   const log = d.querySelector('.adm-progress'), err = d.querySelector('.adm-err'), close = d.querySelector('[data-close]');
   close.addEventListener('click', () => d.close());
+  d.addEventListener('cancel', (e) => { if (st.publishing) e.preventDefault(); }); // no closing mid-upload
   d.showModal();
   const step = (t) => { const li = document.createElement('li'); li.textContent = t; log.appendChild(li); return li; };
+  const alive = () => state === st;
   const stamp = Date.now().toString(36);
   try {
-    for (const slot of state.draft) {
-      const p = state.pending.get(slot.id);
+    for (const slot of st.draft) {
+      const p = st.pending.get(slot.id);
       if (!p) continue;
       const ext = (p.file.name.match(/\.(\w{2,5})$/) || [, 'mp4'])[1].toLowerCase();
-      const li = step(`מעלה את "${slot.title}" (${Math.round(p.file.size / 1048576)}MB)...`);
-      slot.src = await gcsUpload({ bucket: cfg.bucket, token, name: `${cfg.prefix}videos/${slot.id}-${stamp}.${ext}`, blob: p.file, contentType: p.file.type || 'video/mp4', cacheControl: 'public, max-age=31536000, immutable' });
-      if (p.posterBlob) {
-        slot.poster = await gcsUpload({ bucket: cfg.bucket, token, name: `${cfg.prefix}posters/${slot.id}-${stamp}.webp`, blob: p.posterBlob, contentType: 'image/webp', cacheControl: 'public, max-age=31536000, immutable' });
-      }
+      const li = step(`מעלה את "${slot.title}" (${Math.max(1, Math.round(p.file.size / 1048576))}MB)...`);
+      const src = await gcsUpload({ bucket: cfg.bucket, token, name: `${cfg.prefix}videos/${slot.id}-${stamp}.${ext}`, blob: p.file, contentType: p.file.type || 'video/mp4', cacheControl: 'public, max-age=31536000, immutable', onProgress: (f) => { li.dataset.pct = Math.round(f * 100) + '%'; } });
+      if (!alive()) return;
+      const poster = p.posterBlob
+        ? await gcsUpload({ bucket: cfg.bucket, token, name: `${cfg.prefix}posters/${slot.id}-${stamp}.webp`, blob: p.posterBlob, contentType: 'image/webp', cacheControl: 'public, max-age=31536000, immutable' })
+        : '';                                   // no new poster: do not keep the poster of the previous video
+      if (!alive()) return;
+      slot.src = src; slot.poster = poster;
       li.textContent += ' הועלה.';
       dropPending(slot.id);
-      ls.set(K_DRAFT, state.draft);
+      saveDraft();
+      st.bump && st.bump();
     }
     const li = step('מפרסם את רשימת המשבצות (videos-manifest.json)...');
-    await gcsUpload({ bucket: cfg.bucket, token, name: `${cfg.prefix}videos-manifest.json`, blob: new Blob([manifestJson(state.draft)], { type: 'application/json' }), contentType: 'application/json', cacheControl: 'no-cache, max-age=0' });
+    await gcsUpload({ bucket: cfg.bucket, token, name: `${cfg.prefix}videos-manifest.json`, blob: new Blob([manifestJson(st.draft)], { type: 'application/json' }), contentType: 'application/json', cacheControl: 'no-cache, max-age=0' });
+    if (!alive()) return;
     li.textContent += ' פורסם.';
-    state.publicList = state.draft.map((s) => ({ ...s }));
-    state.dirty = false;
-    step(cfg.bucket === mediaConfig.gcsBucket
+    const live = cfg.bucket === mediaConfig.gcsBucket && (cfg.prefix || '') === (mediaConfig.gcsPrefix || '');
+    if (live) {
+      // Only when the site actually reads from this bucket does the published list become "public"
+      st.publicList = st.draft.map((x) => ({ ...x }));
+      st.baseSig = sig(st.publicList);
+      saveDraft();
+    }
+    step(live
       ? 'סיום. המבקרים יראו את השינויים בטעינה הבאה של הדף.'
-      : `סיום. הקבצים בדלי. כדי שהאתר הציבורי יקרא מהם, צריך לכתוב פעם אחת gcsBucket: '${cfg.bucket}' ב-media-manifest.js. הכתובת: ${gcsManifestUrl(cfg.bucket, cfg.prefix)}`);
+      : `סיום. הקבצים בדלי, אבל האתר הציבורי עוד לא קורא מהדלי הזה. צריך לכתוב פעם אחת gcsBucket: '${cfg.bucket}' ב-media-manifest.js. הכתובת: ${gcsManifestUrl(cfg.bucket, cfg.prefix)}`);
   } catch (e) {
     err.textContent = e.message || 'הפרסום נכשל.';
   } finally {
-    close.disabled = false;
-    close.focus();
-    renderEditor();
+    st.publishing = false;
+    pubBtn.disabled = false;
+    if (d.isConnected) { close.disabled = false; close.focus(); }
+    if (alive()) { renderEditor(); updateBar(); }
   }
 }

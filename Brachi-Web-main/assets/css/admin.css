@@ -110,3 +110,8 @@ body.is-admin { padding-bottom: 150px; }
 
 /* In editing mode, hide the public wall's play/fullscreen buttons inside the editor */
 .is-admin .wall-editor .phone-ctrls { display: none; }
+
+.adm-progress li[data-pct]::after { content: " " attr(data-pct); font-variant-numeric: tabular-nums; color: var(--slate); }
+.adm-stale { width: 100%; font-size: var(--s-1); background: #FFF4DF; color: #7A4A00; padding: 8px 12px; border-radius: 8px; }
+.adm-stale .link-btn { margin-inline-start: 10px; font-weight: 500; color: inherit; }
+.adm-bar [data-publish]:disabled { opacity: .55; cursor: progress; }

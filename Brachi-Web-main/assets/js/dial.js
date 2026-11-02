@@ -8,7 +8,7 @@ const ss = {
   set(k, v) { try { sessionStorage.setItem(k, v); } catch { /* */ } },
 };
 
-export function initDial({ onFirstSwitch } = {}) {
+export function initDial() {
   const dial = document.querySelector('.dial');
   const track = dial.querySelector('[data-dial]');
   const words = [...track.querySelectorAll('.dial-word')];
@@ -75,7 +75,9 @@ export function initDial({ onFirstSwitch } = {}) {
 
   // ── First-entry tour: מערכות → סרטונים → אתרים → the active room ──
   let tourTimers = [];
+  let unbindTour = () => {};
   function stopTour() {
+    unbindTour();
     if (!touring) return;
     tourTimers.forEach(clearTimeout); tourTimers = [];
     touring = false; focusWord = null;
@@ -98,10 +100,17 @@ export function initDial({ onFirstSwitch } = {}) {
       focusWord = w; placeThumb(w); showPill(w);
     }, 120 + i * STEP)));
     tourTimers.push(setTimeout(stopTour, 120 + order.length * STEP + 120));
-    const cancel = () => { stopTour(); removeEventListener('pointerdown', cancel, true); removeEventListener('keydown', cancel, true); removeEventListener('wheel', cancel, true); };
+    // Any action by the user stops the tour. The listeners come off when the tour ends, however it ends.
+    const cancel = () => stopTour();
     addEventListener('pointerdown', cancel, true);
     addEventListener('keydown', cancel, true);
     addEventListener('wheel', cancel, { capture: true, passive: true });
+    unbindTour = () => {
+      removeEventListener('pointerdown', cancel, true);
+      removeEventListener('keydown', cancel, true);
+      removeEventListener('wheel', cancel, { capture: true });
+      unbindTour = () => {};
+    };
     return true;
   }
 
@@ -132,7 +141,6 @@ export function initDial({ onFirstSwitch } = {}) {
     update(room, { userInitiated } = {}) {
       if (userInitiated) { switched = true; cancelNudge(); }
       if (!touring) placeThumb(current());
-      if (onFirstSwitch && userInitiated) onFirstSwitch(room);
     },
     setCount(room, n) {
       const el = track.querySelector(`[data-room-link="${room}"] .w-count`);
