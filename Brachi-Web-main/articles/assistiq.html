@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AssistIQ: מאמר הארכיטקטורה | ברכי פיטוסי</title>
+<meta name="description" content="איך בניתי עוזר AI לנציגי שירות שמקשיב לשיחה בזמן אמת: .NET 8, SignalR, תמלול עברית ב-Deepgram דרך proxy בצד השרת, הזרמת תשובות מ-Grok ולולאת למידה באישור אנושי.">
+<link rel="canonical" href="https://brachi-web.vercel.app/articles/assistiq.html">
+<meta property="og:type" content="article">
+<meta property="og:locale" content="he_IL">
+<meta property="og:title" content="AssistIQ: עוזר AI שמקשיב לשיחת שירות בזמן אמת">
+<meta property="og:description" content="מאמר עומק על צנרת קול-לטקסט-להצעה בזמן אמת: WebSocket proxy, תמלול עברית, הזרמת טוקנים ב-SignalR ולולאת למידה מבוקרת.">
+<meta property="og:url" content="https://brachi-web.vercel.app/articles/assistiq.html">
+<meta name="theme-color" content="#ECEEE9">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono&family=IBM+Plex+Sans+Hebrew:wght@400;500;600&family=Karantina:wght@700&display=swap">
+<link rel="stylesheet" href="/assets/css/article.css">
+<script src="/assets/js/article.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">דילוג לתוכן המאמר</a>
+
+<header class="masthead">
+  <a class="home" href="/#engineering">ברכי פיטוסי</a>
+  <a class="back" href="/#engineering">חזרה לפורטפוליו</a>
+</header>
+
+<div class="article-head">
+  <h1>AssistIQ</h1>
+  <p class="dek">עוזר AI שמקשיב לשיחה בין נציג שירות ללקוח, מתמלל אותה בעברית תוך כדי דיבור, ומציע לנציג את הצעד הבא לפני שהלקוח מסיים את המשפט.</p>
+  <p class="meta">זמן קריאה: <span data-reading-time>13</span> דקות. נכתב על בסיס הקוד בריפו AssistIQ (פרטי).</p>
+</div>
+
+<div class="layout">
+  <details class="toc">
+    <summary>תוכן המאמר</summary>
+    <nav aria-label="תוכן המאמר"><ol></ol></nav>
+  </details>
+
+  <main id="main" class="article-body">
+    <p>נציג שירות בחברת רכב שיתופי מקבל שיחה: "הקוד לא עובד ואני עומד ליד האוטו". התשובה קיימת בנהלים. היא פשוט קבורה במסמך של 200 שורות, והלקוח מחכה על הקו. בניתי את AssistIQ כדי שהתשובה תופיע על המסך של הנציג בזמן שהלקוח עוד מדבר. המערכת קולטת את האודיו, מתמללת אותו בעברית, שולחת את התמלול למודל שפה עם הנהלים של החברה, ומזרימה את ההצעה לבועה צפה בדפדפן של הנציג, מילה אחרי מילה.</p>
+
+    <section class="chapter" aria-labelledby="ch1">
+      <span class="chapter-no">פרק 1</span>
+      <h2 id="ch1">האתגר ההנדסי בשטח, ולמה פתרונות מדף נכשלים</h2>
+
+      <p>עוזר כזה שווה משהו רק אם הוא מהיר יותר מהנציג. הצעה שמגיעה אחרי שהנציג כבר ענה היא רעש. לכן כל החלטה בפרויקט נמדדה מול שאלה אחת: כמה זמן עובר מהרגע שהלקוח אמר משהו עד שהנציג רואה עליו תשובה.</p>
+
+      <h3>ארבעה דברים שקשים כאן במיוחד</h3>
+      <p><strong>עברית מדוברת.</strong> מנועי תמלול רבים מצטיינים באנגלית ומתמודדים פחות טוב עם עברית מהירה, מספרי רכב ומספרי טלפון. התחלתי עם ספק תמלול אחר, ובשלב מסוים העברתי את כל הצנרת ל-Deepgram (<code>nova-3</code>, <code>language=he</code>). הקוד הישן עדיין נמצא בריפו כהערה, וזה תיעוד הוגן של הדרך.</p>
+      <p><strong>מפתח API בדפדפן.</strong> הדרך הפשוטה לחבר דפדפן לשירות תמלול היא לתת לו את המפתח. ככה המפתח דולף לכל מי שפותח את כלי המפתחים.</p>
+      <p><strong>המיקרופון שומע גם את הנציג.</strong> כשהנציג מקריא את ההצעה של ה-AI ללקוח, המיקרופון קולט את זה, התמלול נשלח שוב למודל, והמודל מגיב להצעה של עצמו. זו לולאת הד, והיא מופיעה כבר בשיחת הבדיקה הראשונה.</p>
+      <p><strong>מודל שממציא.</strong> מודל שפה כללי ישמח לתת "קוד חלופי" לרכב. קוד שהוא המציא. בשירות לקוחות זה גרוע מלא לענות בכלל.</p>
+
+      <h3>למה לא מוצר מוכן</h3>
+      <p>מוצרי copilot למוקדים קיימים, אבל הם מניחים מרכזייה מסוימת, שפה מסוימת וזרימת עבודה מסוימת. הצורך כאן היה ספציפי: עברית, נהלים של חברה אחת, נציג שעובד בדפדפן רגיל, ואפשרות לחבר גם שיחת טלפון אמיתית. אז בניתי את הצנרת מקצה לקצה, ושמרתי על כל רכיב כך שאפשר להחליף אותו: ספק התמלול כבר הוחלף פעם אחת, וגם מודל השפה הוחלף (יש בריפו שירות ישן מול Claude, והשירות הפעיל עובד מול Grok של xAI).</p>
+    </section>
+
+    <section class="chapter" aria-labelledby="ch2">
+      <span class="chapter-no">פרק 2</span>
+      <h2 id="ch2">ארכיטקטורת המערכת וזרימת הנתונים מקצה לקצה</h2>
+
+      <figure>
+        <svg viewBox="0 0 360 600" role="img" aria-labelledby="fig1t fig1d">
+          <title id="fig1t">צנרת הקול של AssistIQ</title>
+          <desc id="fig1d">מיקרופון בדפדפן או שיחת Twilio שולחים אודיו לשרת .NET 8. השרת מעביר אותו ב-WebSocket ל-Deepgram, מקבל תמלול, שולח אותו ל-Grok בהזרמה, ומחזיר את ההצעה לתוסף Chrome דרך SignalR.</desc>
+          <defs><marker id="ah3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#13252B"/></marker></defs>
+          <g class="fig-node"><rect x="10" y="10" width="160" height="62"/><text x="90" y="37" text-anchor="middle">מיקרופון בדפדפן</text><text class="sub" x="90" y="57" text-anchor="middle">PCM של 16 ביט</text></g>
+          <g class="fig-node"><rect x="190" y="10" width="160" height="62"/><text x="270" y="37" text-anchor="middle">שיחת טלפון</text><text class="sub" x="270" y="57" text-anchor="middle">Twilio בקידוד μ-law</text></g>
+          <path class="fig-edge" d="M90 72V112" marker-end="url(#ah3)"/><path class="fig-edge" d="M270 72V112" marker-end="url(#ah3)"/>
+          <g class="fig-node hot"><rect x="10" y="114" width="340" height="70"/><text x="180" y="142" text-anchor="middle">שרת ASP.NET Core 8</text><text class="sub" x="180" y="164" text-anchor="middle">המפתחות נשארים כאן</text></g>
+          <path class="fig-edge" d="M120 184V224" marker-end="url(#ah3)"/>
+          <path class="fig-edge dash" d="M240 224V184" marker-end="url(#ah3)"/>
+          <text class="fig-label" x="78" y="208" text-anchor="middle">אודיו</text>
+          <text class="fig-label" x="296" y="208" text-anchor="middle">תמלול</text>
+          <g class="fig-node"><rect x="60" y="226" width="240" height="62"/><text x="180" y="253" text-anchor="middle">Deepgram nova-3</text><text class="sub" x="180" y="273" text-anchor="middle">עברית, עם תוצאות ביניים</text></g>
+          <path class="fig-edge" d="M180 288V328" marker-end="url(#ah3)"/>
+          <g class="fig-node"><rect x="60" y="330" width="240" height="62"/><text x="180" y="357" text-anchor="middle">SuggestionHub (SignalR)</text><text class="sub" x="180" y="377" text-anchor="middle">סינון כפילויות והד, היסטוריה לפי חיבור</text></g>
+          <path class="fig-edge" d="M180 392V432" marker-end="url(#ah3)"/>
+          <g class="fig-node"><rect x="60" y="434" width="240" height="62"/><text x="180" y="461" text-anchor="middle">Grok בהזרמה</text><text class="sub" x="180" y="481" text-anchor="middle">נהלים + דפוסים שנלמדו</text></g>
+          <path class="fig-edge" d="M180 496V536" marker-end="url(#ah3)"/>
+          <g class="fig-node"><rect x="60" y="538" width="240" height="56"/><text x="180" y="563" text-anchor="middle">בועה צפה בתוסף Chrome</text><text class="sub" x="180" y="582" text-anchor="middle">ReceiveSuggestionPartial</text></g>
+        </svg>
+        <figcaption>שני מקורות אודיו, צנרת אחת. השרת הוא היחיד שמחזיק את מפתחות Deepgram ו-xAI, והדפדפן מדבר רק איתו.</figcaption>
+      </figure>
+
+      <h3>שני מקורות אודיו</h3>
+      <p><strong>מהדפדפן.</strong> תוסף Chrome (Manifest V3) מזריק לכל עמוד בועה צפה. התוסף לוכד את המיקרופון עם <code>echoCancellation</code> ו-<code>noiseSuppression</code>, ממיר את האודיו ל-PCM של 16 ביט, ושולח אותו ב-WebSocket לשרת, לא ל-Deepgram ישירות. הפרמטרים של התמלול נבנים בצד הלקוח ונעברים הלאה כמו שהם: <code>model=nova-3</code>, <code>language=he</code>, <code>interim_results=true</code>, <code>endpointing=500</code>, <code>numerals=true</code>. תוצאות ביניים מוצגות מיד כטקסט אפור, ורק תוצאה סופית נשלחת למודל.</p>
+      <p><strong>מהטלפון.</strong> השרת יכול להתקשר לנציג דרך Twilio. Twilio מזרים את השיחה כ-Media Stream, כל חבילה מגיעה ב-base64 בקידוד μ-law של 8kHz, והשרת ממיר אותה ל-PCM לינארי. החלק שאני הכי אוהבת כאן: Twilio מסמן לכל חבילה <code>track</code>, כלומר האם היא מהצד של הלקוח או מהצד של הנציג. במקום לנסות לזהות דוברים מתוך ערוץ מעורבב, פתחתי <strong>שני חיבורי Deepgram נפרדים</strong>, אחד לכל צד, וכל תמלול מקבל תווית <code>[לקוח]</code> או <code>[נציג]</code> עוד לפני שהוא מגיע למודל.</p>
+
+      <h3>Proxy בצד השרת, כדי שהמפתח לא יגיע לדפדפן</h3>
+      <p>השרת מקבל את ה-WebSocket מהדפדפן, פותח חיבור משלו ל-Deepgram עם כותרת <code>Authorization</code>, ומריץ שתי משימות במקביל: אודיו מהדפדפן ל-Deepgram, ותמלול מ-Deepgram לדפדפן. ברגע שאחד הצדדים נסגר, שתי המשימות מבוטלות.</p>
+<pre><code>app.Map(<span class="s">"/ws/deepgram"</span>, <span class="k">async</span> context =&gt;
+{
+    <span class="k">var</span> browserWs = <span class="k">await</span> context.WebSockets.AcceptWebSocketAsync();
+    <span class="k">var</span> dgClient  = <span class="k">new</span> ClientWebSocket();
+    dgClient.Options.SetRequestHeader(<span class="s">"Authorization"</span>, <span class="s">$"Token {apiKey}"</span>);
+    <span class="k">await</span> dgClient.ConnectAsync(<span class="k">new</span> Uri(dgUrl), context.RequestAborted);
+
+    <span class="k">var</span> cts = <span class="k">new</span> CancellationTokenSource();
+    <span class="k">var</span> browserToDg = Task.Run(...);   <span class="c">// דפדפן → Deepgram (אודיו)</span>
+    <span class="k">var</span> dgToBrowser = Task.Run(...);   <span class="c">// Deepgram → דפדפן (תמלול JSON)</span>
+
+    <span class="k">await</span> Task.WhenAny(browserToDg, dgToBrowser);
+    cts.Cancel();
+});</code></pre>
+      <span class="code-cap">מתוך <code>Program.cs</code>, מקוצר.</span>
+      <p>לפני ה-proxy בניתי פתרון ביניים: נקודת קצה שמנפיקה טוקן זמני מ-Deepgram, תקף ל-30 שניות, רק מספיק כדי לפתוח חיבור. זה עדיף על מפתח קבוע, אבל עדיין דורש שהדפדפן ידבר ישירות עם ספק חיצוני. ה-proxy פתר גם בעיית הרשאות שהייתה לי עם אימות מתוך הדפדפן, וריכז את כל התעבורה החיצונית בשרת.</p>
+
+      <h3>SignalR ו-Hub אחד</h3>
+      <p><code>SuggestionHub</code> הוא נקודת המגע בין הדפדפן ללוגיקה. הלקוח קורא ל-<code>SendTranscript</code> עם כל תמלול סופי, ה-Hub מעביר אותו לשירות ה-AI, וההצעה חוזרת לאותו חיבור בדיוק (<code>Clients.Client(connectionId)</code>) בשני שלבים: <code>ReceiveSuggestionPartial</code> תוך כדי הזרמה, ו-<code>ReceiveSuggestion</code> בסוף. בצד הלקוח החיבור נבנה עם <code>withAutomaticReconnect([0, 1000, 3000, 5000])</code>, כך שניתוק רגעי של רשת לא מפיל שיחה.</p>
+      <p>התוסף מסנכרן מצב בין לשוניות דרך <code>BroadcastChannel</code>. נציג שעובר בין מערכת ה-CRM לחלון המייל רואה את אותה בועה עם אותו תמלול.</p>
+    </section>
+
+    <section class="chapter" aria-labelledby="ch3">
+      <span class="chapter-no">פרק 3</span>
+      <h2 id="ch3">התלבטויות הנדסיות ופתרון מקרי קצה קשים</h2>
+
+      <h3>מתי לשלוח טוקנים לדפדפן</h3>
+      <p>Grok מחזיר את התשובה בהזרמה (SSE), טוקן אחרי טוקן. שליחת כל טוקן בנפרד דרך SignalR מייצרת עשרות הודעות קטנות לשנייה, והבועה "רועדת" באמצע מילים. המתנה לתשובה המלאה מבזבזת בדיוק את היתרון של ההזרמה. בחרתי כלל פשוט: שולחים כשהטוקן נגמר בגבול של מילה או משפט, <strong>או</strong> כשעברו 150 מילישניות מהשליחה האחרונה, מה שמגיע קודם.</p>
+<pre><code><span class="k">var</span> endsOnBoundary = token.EndsWith(<span class="s">" "</span>) || token.EndsWith(<span class="s">","</span>) ||
+                     token.EndsWith(<span class="s">"."</span>) || token.EndsWith(<span class="s">"?"</span>) ||
+                     token.EndsWith(<span class="s">"!"</span>) || token.EndsWith(<span class="s">":"</span>);
+<span class="k">var</span> timedOut = (DateTime.UtcNow - lastSent).TotalMilliseconds &gt; <span class="k">150</span>;
+
+<span class="k">if</span> (hub != <span class="k">null</span> &amp;&amp; connectionId != <span class="k">null</span> &amp;&amp;
+    (endsOnBoundary || timedOut) &amp;&amp; pendingTokens.Length &gt; <span class="k">0</span>)
+{
+    <span class="k">await</span> hub.Clients.Client(connectionId)
+             .SendAsync(<span class="s">"ReceiveSuggestionPartial"</span>, full.ToString());
+    pendingTokens.Clear();
+    lastSent = DateTime.UtcNow;
+}</code></pre>
+      <span class="code-cap">מתוך <code>Services/AI/GrokService.cs</code>.</span>
+      <p>שימו לב שנשלח <code>full</code> ולא רק הטוקנים החדשים. כל הודעה מחזיקה את כל הטקסט עד עכשיו, כך שאם הודעה אחת הולכת לאיבוד בדרך, ההודעה הבאה מתקנת את התצוגה. זה עולה מעט יותר בתעבורה, אבל הלקוח לא צריך לנהל מצב ולא יכול להציג משפט עם חור באמצע.</p>
+
+      <h3>שבירת לולאת ההד</h3>
+      <p>שתי הגנות עובדות יחד, אחת בכל צד. בתוסף, כל תמלול סופי שנשלח נשמר בקבוצה (<code>sentSet</code>) ל-10 שניות, ותמלול זהה בחלון הזה לא נשלח שוב. בשרת, כל תמלול מושווה לאחרון שהתקבל באותו חיבור, ובנוסף נבדק אם הוא מכיל את תחילת ההצעה האחרונה שה-AI נתן:</p>
+<pre><code><span class="c">// מנע עיבוד כפול</span>
+<span class="k">if</span> (normalized == lastTranscript) <span class="k">return</span> <span class="s">""</span>;
+
+<span class="c">// סנן אם הנציג קרא את ההצעה בקול</span>
+<span class="k">if</span> (!<span class="k">string</span>.IsNullOrEmpty(lastSuggestion) &amp;&amp;
+    normalized.Contains(lastSuggestion.Substring(<span class="k">0</span>, Math.Min(<span class="k">15</span>, lastSuggestion.Length))))
+{
+    Console.WriteLine(<span class="s">$"[Grok] [{key}] Filtered AI echo."</span>);
+    <span class="k">return</span> <span class="s">""</span>;
+}</code></pre>
+      <span class="code-cap">מתוך <code>Services/AI/GrokService.cs</code>.</span>
+      <p>15 התווים הראשונים הם פשרה. פחות מזה, ומשפטים קצרים ונפוצים היו נחסמים בטעות. יותר מזה, והתמלול, שלעולם לא זהה מילה במילה למה שהנציג קרא, כבר לא היה מתאים. זו היוריסטיקה ולא פתרון מלא, ואני מציינת את זה בגלוי בפרק הבא.</p>
+
+      <h3>היסטוריה לפי חיבור, תחת נעילה</h3>
+      <p>כמה נציגים יכולים להיות מחוברים במקביל, וההיסטוריה של שיחה אחת לא יכולה לדלוף לשיחה אחרת. כל המצב של שיחה (היסטוריה, תמלול אחרון, הצעה אחרונה) יושב ב-<code>ConcurrentDictionary</code> לפי <code>connectionId</code>. ההיסטוריה עצמה היא <code>List</code> רגיל, ולכן כל גישה אליה עטופה ב-<code>lock</code>, והבקשה למודל נבנית מעותק שנלקח תחת הנעילה. ההיסטוריה מוגבלת ל-30 ההודעות האחרונות, חלון מתגלגל. התחלתי עם 6. זה היה מהיר, אבל המודל שכח באמצע השיחה על איזה רכב מדובר. 30 החזיקו שיחת שירות טיפוסית שלמה בלי לנפח את הבקשה.</p>
+
+      <h3>שיחת טלפון: שני ערוצים במקום זיהוי דוברים</h3>
+      <p>במסלול הטלפון הייתה לי בחירה. אפשר לערבב את שני הצדדים לערוץ אחד ולבקש מהמודל להבין מההקשר מי מדבר. במסלול הדפדפן אין ברירה, כי המיקרופון שומע את שניהם, וה-system prompt אומר במפורש למודל שאין סימון דוברים. אבל Twilio כבר יודע מי מדבר, אז אין סיבה לזרוק את המידע הזה. כל חבילת אודיו מנותבת לפי השדה <code>track</code> לחיבור Deepgram משלה, ולולאת הקבלה של כל חיבור מוסיפה את התווית שלו לפני שהיא מעבירה את התמלול הלאה. ההמרה מ-μ-law ל-PCM לינארי נעשית בשרת עם פונקציה של כמה שורות, בלי ספרייה.</p>
+      <p>בצד העיבוד, ה-worker שמעביר תמלולים מהטלפון למודל משתמש ב-<code>SemaphoreSlim</code> עם <code>WaitAsync(0)</code>. אם המודל עדיין עונה על המשפט הקודם, המשפט החדש לא נכנס לתור. הוא פשוט לא מעובד כהצעה, אבל הוא כן נכנס להיסטוריה דרך התמלול הבא. החלטתי כך כי תור של הצעות שהתיישנו גרוע יותר מהצעה אחת שדולגה. נציג צריך את התשובה לשאלה שנשאלה עכשיו, לא לזו שלפני עשר שניות.</p>
+
+      <h3>מודל שלא ממציא</h3>
+      <p>ה-system prompt בנוי משלושה חלקים: כללי התנהגות, הנהלים והמידע של החברה (קובץ <code>knowledge.txt</code>), ודפוסים שנלמדו משיחות קודמות. הכללים נכתבו כדי לחסום את מצבי הכשל שראיתי בבדיקות: לדבר רק לנציג ולא ללקוח, להסתמך רק על הנהלים ולא להמציא מחירים או קודים, ולבקש קודם לזהות את הרכב לפני שנותנים קוד או מיקום. יש גם כללי פרטיות: לא להקריא פרטים של לקוח קודם, ולאמת זהות על ידי בקשה מהלקוח ולא על ידי הקראה. התשובה מוגבלת למשפט אחד או שניים, כי נציג באמצע שיחה לא קורא פסקאות.</p>
+
+      <h3>לולאת למידה עם אדם באמצע</h3>
+      <p>בסוף שיחה, הנציג יכול לאשר אותה. רק אז השרת שולח את התמלול המלא למודל עם הנחיה לחלץ עד חמש נקודות למידה בפורמט קבוע ("ש: ... | ת: ..." או "ב: ... | פ: ..."), ב-<code>temperature = 0</code>, ומוסיף אותן ל-<code>learned.txt</code>. מהשיחה הבאה, הדפוסים האלה הם חלק מה-system prompt. ההחלטה שכל דבר נלמד רק אחרי אישור אנושי הייתה מכוונת: שיחה גרועה, שבה הנציג טעה, לא צריכה ללמד את המערכת לטעות באותה צורה.</p>
+    </section>
+
+    <section class="chapter" aria-labelledby="ch4">
+      <span class="chapter-no">פרק 4</span>
+      <h2 id="ch4">בדיקות אוטומטיות, אבטחה ותוצאות מדידות</h2>
+
+      <p>זה הפרק שבו אני הכי ישירה, כי AssistIQ הוא אב טיפוס עובד ולא מערכת פרודקשן. הוא רץ מקצה לקצה, בעברית, מול נציג אמיתי ושיחת טלפון אמיתית. אבל יש פער בין "עובד" לבין "מוכן", ואני מעדיפה למפות אותו בעצמי.</p>
+
+      <h3>איך זה נבדק</h3>
+      <p>בפרויקט הזה אין עדיין חבילת בדיקות אוטומטיות. הבדיקה הייתה ידנית ומבוססת לוגים: כל שלב בצנרת כותב שורת לוג עם תגית (<code>[Proxy]</code>, <code>[DG]</code>, <code>[Grok]</code>, <code>[Twilio]</code>), וכל החלטת סינון נרשמת ("Skipped duplicate", "Filtered AI echo") עם מזהה החיבור. נקודת קצה ייעודית, <code>/test-deepgram</code>, בודקת את החיבור לספק התמלול בלי להפעיל את כל הצנרת. ככה כיילתי את חלון ההיסטוריה, את סף ה-endpointing ואת חלון ה-150 מילישניות.</p>
+      <p>אם הייתי ממשיכה מכאן, הבדיקות הראשונות היו יוצאות מהלוגיקה שכבר מבודדת יפה: מסנן ההד, מסנן הכפילויות וכלל השליחה של הטוקנים הם פונקציות קטנות עם קלט ופלט ברורים, ואפשר לבדוק אותם עם זרם SSE מוקלט בלי רשת.</p>
+
+      <h3>אבטחה: מה סגור ומה לא</h3>
+      <p>מה שסגור: מפתחות Deepgram ו-xAI נמצאים רק בהגדרות השרת. הדפדפן מתחבר ל-proxy ולא לספק. ההיסטוריה מבודדת לפי חיבור. למידה חדשה נכנסת רק באישור אנושי.</p>
+      <div class="aside-note">
+        <h3>פערים ידועים, לפני שזה עולה לפרודקשן</h3>
+        <ul>
+          <li>מדיניות ה-CORS פתוחה לכל origin עם credentials. זה נוח בפיתוח מול תוסף, ובפרודקשן צריך רשימה סגורה.</li>
+          <li>נקודת הקצה הישנה שמחזירה את מפתח Deepgram עדיין קיימת "לתאימות לאחור". היא צריכה להימחק עכשיו כשה-proxy עובד.</li>
+          <li><code>SendTranscript</code> משדר את התמלול ל-<code>Clients.All</code>. עם יותר מנציג אחד, נציג אחר יראה תמלול של שיחה שאינה שלו. ההצעה עצמה כבר נשלחת רק לחיבור הנכון.</li>
+          <li>מסלול הטלפון משתמש במפתח קבוע, <code>twilio-session</code>, כך שהוא תומך בשיחה אחת בכל רגע.</li>
+          <li>לכידת האודיו בתוסף משתמשת ב-<code>ScriptProcessorNode</code>, שהוצא משימוש. המעבר הוא ל-<code>AudioWorklet</code>.</li>
+          <li>כללי הפרטיות נאכפים בפרומפט, לא בקוד. מודל שמתעלם מהם לא ייעצר.</li>
+        </ul>
+      </div>
+
+      <h3>מה ראיתי בשטח</h3>
+      <p>הבעיות שצצו בשיחות בדיקה אמיתיות לימדו אותי יותר מכל תכנון מוקדם. הראשונה הייתה לולאת ההד, שהופיעה כבר בשיחה הראשונה. השנייה הייתה אותו תמלול סופי שהגיע לשרת פעמיים, ושני מסנני הכפילויות (בתוסף ובשרת) נולדו משם. השלישית הייתה זיכרון קצר מדי, וממנה חלון ההיסטוריה עלה מ-6 ל-30. הרביעית הייתה החיבור עצמו: חיבור WebSocket שקט נסגר על ידי שכבות ביניים, ולכן התוסף שולח הודעת <code>KeepAlive</code> ל-Deepgram כל 10 שניות, והשרת מגדיר keep-alive של 20 שניות ל-WebSocket.</p>
+
+      <h3>מה נמדד</h3>
+      <p>אין לי מספר latency אחד להציג, ולא אמציא אחד. מה שאני יכולה להצביע עליו הוא איפה הזמן הולך ומה שולט בו: Deepgram מחזיר תוצאות ביניים תוך כדי דיבור ותוצאה סופית אחרי 500 מילישניות של שקט, המודל שנבחר הוא גרסת ה-non-reasoning המהירה של Grok, וההצעה מתחילה להופיע אצל הנציג במנה הראשונה של טוקנים, לא בסוף התשובה.</p>
+
+      <h3>מה הייתי עושה אחרת</h3>
+      <p>הייתי בונה את ה-proxy מהיום הראשון במקום להגיע אליו דרך מפתח בדפדפן ואחר כך טוקן זמני. הייתי מפרידה את מצב השיחה ממחלקת השירות של המודל, כך שהחלפת ספק לא תחייב להעתיק את כל ניהול ההיסטוריה. והייתי כותבת בדיקה למסנן ההד לפני שכתבתי את המסנן, כי זה בדיוק סוג הקוד שמתנהג אחרת ממה שחושבים בשיחה החמישית.</p>
+    </section>
+  </main>
+</div>
+
+<footer class="article-foot">
+  <div class="in">
+    <div>
+      <h2>רוצים לדבר על זה?</h2>
+      <p>אני זמינה לשאלות על הארכיטקטורה, לראיונות ולפרויקטים.</p>
+      <p><a href="https://wa.me/972547568966">וואטסאפ: <span class="ltr">054-756-8966</span></a></p>
+      <p><a href="mailto:Baloo532004@gmail.com" class="ltr">Baloo532004@gmail.com</a></p>
+    </div>
+    <div>
+      <h2>עוד מאמרים</h2>
+      <ul>
+        <li><a href="/articles/multi-ai.html">Multi-AI Dev Team: צוות של מודלי שפה עם גבולות שנאכפים בקוד</a></li>
+        <li><a href="/articles/benefits-wallet.html">ארנק הטבות: ארבע אפליקציות, שרת אחד ומקור אמת יחיד</a></li>
+        <li><a href="/#engineering">חזרה לפורטפוליו</a></li>
+      </ul>
+    </div>
+  </div>
+</footer>
+</body>
+</html>

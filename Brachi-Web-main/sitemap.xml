@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url>
-    <loc>https://brachi-web.vercel.app/</loc>
-    <lastmod>2026-06-29</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>1.0</priority>
-  </url>
+  <url><loc>https://brachi-web.vercel.app/</loc><lastmod>2026-11-02</lastmod><changefreq>monthly</changefreq><priority>1.0</priority></url>
+  <url><loc>https://brachi-web.vercel.app/articles/multi-ai.html</loc><lastmod>2026-11-02</lastmod><priority>0.8</priority></url>
+  <url><loc>https://brachi-web.vercel.app/articles/benefits-wallet.html</loc><lastmod>2026-11-02</lastmod><priority>0.8</priority></url>
+  <url><loc>https://brachi-web.vercel.app/articles/assistiq.html</loc><lastmod>2026-11-02</lastmod><priority>0.8</priority></url>
+  <url><loc>https://brachi-web.vercel.app/cv.html</loc><lastmod>2026-11-02</lastmod><priority>0.6</priority></url>
 </urlset>

@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>מֵירָה | בית תכשיטים | דמו</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@300;400;500&family=Bellefair&display=swap" rel="stylesheet">
+<style>
+:root{--silk:#F4EEE3;--silk2:#EAE1D1;--gold:#B8995E;--gold2:#8C7240;--ink:#2A2620;--mute:#7A7163;--rose:#D9B8A6}
+*{box-sizing:border-box;margin:0}
+[hidden]{display:none!important}
+html{scroll-behavior:smooth}
+body{background:var(--silk);color:var(--ink);font:300 18px/1.75 "Frank Ruhl Libre",serif;padding-block-end:64px;overflow-x:hidden}
+.disp{font-family:Bellefair,"Frank Ruhl Libre",serif;font-weight:400}
+button{font:inherit}
+:focus-visible{outline:1px solid var(--gold2);outline-offset:4px}
+a{color:inherit}
+.wrap{max-width:1240px;margin-inline:auto;padding-inline:24px}
+nav{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding-block:22px;border-block-end:1px solid rgba(42,38,32,.15)}
+nav .l{display:flex;gap:28px;font-size:15px}
+nav .l a{text-decoration:none;color:var(--mute)}
+nav .l a:hover{color:var(--ink)}
+.mark{font-family:Bellefair;font-size:34px;letter-spacing:.3em;text-align:center;padding-inline-start:.3em}
+nav .r{justify-self:end;font-size:15px;color:var(--mute)}
+@media (max-width:760px){nav{grid-template-columns:1fr auto}nav .l{display:none}.mark{text-align:start;font-size:26px}}
+/* hero — asymmetric editorial */
+.hero{display:grid;grid-template-columns:repeat(12,1fr);gap:24px;padding-block:56px 80px;align-items:end}
+.hero .issue{grid-column:1/4;align-self:start;font-size:14px;color:var(--mute);border-block-start:1px solid var(--gold);padding-block-start:10px}
+.hero h1{grid-column:4/13;font-family:Bellefair;font-weight:400;font-size:clamp(58px,10vw,148px);line-height:.9;letter-spacing:-.01em}
+.hero h1 em{font-style:normal;display:block;padding-inline-start:18%;color:var(--gold2)}
+.hero .art{grid-column:1/7;grid-row:3}
+.hero .lede{grid-column:8/12;grid-row:3;font-size:21px;align-self:center}
+.hero .lede p+p{margin-block-start:14px;font-size:16px;color:var(--mute)}
+@media (max-width:860px){.hero{grid-template-columns:1fr}.hero>*{grid-column:1!important;grid-row:auto!important}.hero h1 em{padding-inline-start:12%}}
+.art svg{width:100%;height:auto;display:block}
+.link{display:inline-block;margin-block-start:22px;border:0;background:none;border-block-end:1px solid var(--gold);padding:0 0 4px;cursor:pointer;font-size:17px;color:var(--ink);text-decoration:none}
+/* lookbook */
+.look{padding-block:80px;background:var(--silk2)}
+.look header{display:flex;justify-content:space-between;align-items:end;gap:24px;margin-block-end:40px;flex-wrap:wrap}
+.look h2{font-family:Bellefair;font-weight:400;font-size:clamp(40px,6vw,76px);line-height:1}
+.look header p{max-width:36ch;color:var(--mute);font-size:16px}
+.gallery{display:grid;grid-template-columns:5fr 4fr 3fr;gap:28px;align-items:start}
+.gallery .tilt:nth-child(2){margin-block-start:90px}
+.gallery .tilt:nth-child(3){margin-block-start:30px}
+@media (max-width:760px){.gallery{grid-template-columns:1fr 1fr}.gallery .tilt:nth-child(1){grid-column:1/-1}.gallery .tilt:nth-child(2){margin-block-start:40px}.gallery .tilt:nth-child(3){margin-block-start:0}}
+.tilt{perspective:900px;margin:0}
+.card3d{transform-style:preserve-3d;transition:transform .5s cubic-bezier(.2,.7,.2,1);will-change:transform;position:relative}
+.card3d svg{display:block;width:100%;height:auto;box-shadow:0 30px 60px -30px rgba(42,38,32,.45)}
+.card3d .sheen{position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle at var(--mx,50%) var(--my,30%),rgba(255,255,255,.45),transparent 45%);mix-blend-mode:soft-light;opacity:0;transition:opacity .3s}
+.tilt:hover .sheen{opacity:1}
+.tilt figcaption{display:flex;justify-content:space-between;margin-block-start:14px;font-size:15px}
+.tilt figcaption span:last-child{color:var(--gold2)}
+/* story */
+.story{padding-block:100px;display:grid;grid-template-columns:repeat(12,1fr);gap:24px}
+.story .big{grid-column:2/9;font-family:Bellefair;font-size:clamp(30px,4vw,52px);line-height:1.2}
+.story .big::before{content:"“";display:block;font-size:2.4em;line-height:.6;color:var(--gold)}
+.story .col{grid-column:9/13;align-self:end;font-size:16px;color:var(--mute);columns:1}
+.story .col p+p{margin-block-start:12px}
+.story .sig{grid-column:2/7;font-family:Bellefair;font-size:24px;color:var(--gold2)}
+@media (max-width:860px){.story{grid-template-columns:1fr}.story>*{grid-column:1!important}}
+.atelier{border-block:1px solid rgba(42,38,32,.15);padding-block:60px}
+.atelier .wrap{display:grid;grid-template-columns:repeat(3,1fr);gap:40px}
+@media (max-width:760px){.atelier .wrap{grid-template-columns:1fr;gap:28px}}
+.atelier h3{font-family:Bellefair;font-weight:400;font-size:30px;margin-block-end:6px}
+.atelier p{font-size:16px;color:var(--mute)}
+.atelier .n{font-family:Bellefair;color:var(--gold);font-size:18px}
+footer{padding-block:48px;text-align:center}
+footer .mark{font-size:28px}
+footer p{font-size:14px;color:var(--mute);margin-block-start:8px}
+/* magnetic cursor */
+.cur{position:fixed;top:0;left:0;width:10px;height:10px;border-radius:50%;background:var(--gold2);pointer-events:none;z-index:100;transform:translate(-50%,-50%);display:none}
+.cur-ring{position:fixed;top:0;left:0;width:44px;height:44px;border-radius:50%;border:1px solid var(--gold);pointer-events:none;z-index:99;transform:translate(-50%,-50%);transition:width .25s,height .25s,background .25s;display:none}
+.cur-ring.big{width:84px;height:84px;background:rgba(184,153,94,.12)}
+@media (pointer:fine){body.has-cur,body.has-cur a,body.has-cur button{cursor:none}.has-cur .cur,.has-cur .cur-ring{display:block}}
+.bp-bar{position:fixed;inset-inline:0;bottom:0;z-index:50;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 20px;background:var(--ink);color:var(--silk2);font-size:13px}
+.bp-bar button{background:transparent;color:var(--silk);border:1px solid var(--gold);padding:8px 16px;cursor:pointer;font-size:15px}
+.bp-bar button:hover{background:var(--gold);color:var(--ink)}
+@media (max-width:480px){.bp-bar span{display:none}.bp-bar button{width:100%}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<div class="cur" aria-hidden="true"></div><div class="cur-ring" aria-hidden="true"></div>
+<div class="wrap">
+<nav>
+  <div class="l"><a href="#look">הקולקציה</a><a href="#story">האטלייה</a><a href="#visit">ביקור</a></div>
+  <div class="mark">MEIRA</div>
+  <div class="r">רוטשילד 41</div>
+</nav>
+
+<header class="hero">
+  <div class="issue">קולקציית סתיו־חורף<br>גיליון מס׳ 7</div>
+  <h1>זהב שנזכר<em>במי שענד אותו</em></h1>
+  <div class="art"><svg viewBox="0 0 600 420" role="img" aria-label="צווארון זהב עם תליון פנינה על בד משי">
+    <defs><linearGradient id="silk" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#EFE6D6"/><stop offset=".5" stop-color="#F8F3EA"/><stop offset="1" stop-color="#E2D6C1"/></linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#8C7240"/><stop offset=".4" stop-color="#E3CD94"/><stop offset=".6" stop-color="#B8995E"/><stop offset="1" stop-color="#7a6236"/></linearGradient>
+    <radialGradient id="pearl" cx="40%" cy="35%"><stop offset="0" stop-color="#fff"/><stop offset=".6" stop-color="#EDE4D8"/><stop offset="1" stop-color="#C9B9A3"/></radialGradient></defs>
+    <rect width="600" height="420" fill="url(#silk)"/>
+    <path d="M0 120C150 60 260 200 600 90V0H0z" fill="#E9DFCE" opacity=".7"/><path d="M0 330c160-60 330 40 600-40v130H0z" fill="#E4D8C4" opacity=".7"/>
+    <path d="M120 60C150 250 450 250 480 60" fill="none" stroke="url(#gold)" stroke-width="7" stroke-linecap="round"/>
+    <path d="M140 66C170 230 430 230 460 66" fill="none" stroke="url(#gold)" stroke-width="2" stroke-dasharray="2 6" stroke-linecap="round"/>
+    <line x1="300" y1="205" x2="300" y2="250" stroke="#B8995E" stroke-width="3"/>
+    <circle cx="300" cy="278" r="28" fill="url(#pearl)"/><circle cx="292" cy="268" r="6" fill="#fff" opacity=".8"/>
+  </svg></div>
+  <div class="lede"><p>מֵירָה היא אטלייה קטנה לתכשיטי זהב 18 קראט, בעבודת יד ובמהדורות של עשרים יחידות לכל דגם.</p><p>כל תכשיט נחתם בחותמת האטלייה ומלווה בתעודת מקור. אפשר לתאם התאמה אישית של אורך ושל אבן.</p><a class="link" href="#look">לקולקציה המלאה</a></div>
+</header>
+</div>
+
+<section class="look" id="look"><div class="wrap">
+  <header><h2>לוּקבּוּק</h2><p>הזיזו את העכבר מעל התכשיטים, או את האצבע במגע. כך הם תופסים את האור.</p></header>
+  <div class="gallery">
+    <figure class="tilt"><div class="card3d"><svg viewBox="0 0 400 500" role="img" aria-label="טבעת חותם זהב">
+      <defs><radialGradient id="bg1" cx="50%" cy="40%"><stop offset="0" stop-color="#3a332a"/><stop offset="1" stop-color="#1e1a15"/></radialGradient><linearGradient id="g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F0DDA8"/><stop offset=".5" stop-color="#B8995E"/><stop offset="1" stop-color="#6f5830"/></linearGradient></defs>
+      <rect width="400" height="500" fill="url(#bg1)"/><ellipse cx="200" cy="300" rx="110" ry="120" fill="none" stroke="url(#g1)" stroke-width="26"/><rect x="140" y="140" width="120" height="70" rx="20" fill="url(#g1)"/><text x="200" y="186" text-anchor="middle" font-family="Bellefair" font-size="34" fill="#4d3d22">M</text><ellipse cx="200" cy="440" rx="120" ry="12" fill="#000" opacity=".35"/></svg><div class="sheen"></div></div>
+      <figcaption><span>טבעת חותם "אוגוסט"</span><span>₪4,800</span></figcaption></figure>
+    <figure class="tilt"><div class="card3d"><svg viewBox="0 0 400 560" role="img" aria-label="עגילי טיפה עם אבן ורודה">
+      <defs><linearGradient id="bg2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#E9D7CB"/><stop offset="1" stop-color="#D9B8A6"/></linearGradient><linearGradient id="g2" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#8C7240"/><stop offset=".5" stop-color="#EAD49D"/><stop offset="1" stop-color="#8C7240"/></linearGradient><radialGradient id="st" cx="40%" cy="35%"><stop offset="0" stop-color="#FBE1E3"/><stop offset=".6" stop-color="#D88C98"/><stop offset="1" stop-color="#8E4555"/></radialGradient></defs>
+      <rect width="400" height="560" fill="url(#bg2)"/>
+      <g><circle cx="140" cy="140" r="12" fill="url(#g2)"/><line x1="140" y1="152" x2="140" y2="260" stroke="#B8995E" stroke-width="3"/><path d="M140 260c-30 40-30 90 0 110 30-20 30-70 0-110z" fill="url(#st)" stroke="#B8995E" stroke-width="3"/></g>
+      <g><circle cx="260" cy="180" r="12" fill="url(#g2)"/><line x1="260" y1="192" x2="260" y2="300" stroke="#B8995E" stroke-width="3"/><path d="M260 300c-30 40-30 90 0 110 30-20 30-70 0-110z" fill="url(#st)" stroke="#B8995E" stroke-width="3"/></g></svg><div class="sheen"></div></div>
+      <figcaption><span>עגילי "לילה בפריז"</span><span>₪3,250</span></figcaption></figure>
+    <figure class="tilt"><div class="card3d"><svg viewBox="0 0 300 420" role="img" aria-label="צמיד חוליות זהב">
+      <defs><linearGradient id="bg3" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F6F0E6"/><stop offset="1" stop-color="#E3D7C2"/></linearGradient><linearGradient id="g3" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#EAD49D"/><stop offset="1" stop-color="#8C7240"/></linearGradient></defs>
+      <rect width="300" height="420" fill="url(#bg3)"/><g fill="none" stroke="url(#g3)" stroke-width="10">
+      <ellipse cx="150" cy="120" rx="34" ry="22"/><ellipse cx="150" cy="166" rx="22" ry="34"/><ellipse cx="150" cy="214" rx="34" ry="22"/><ellipse cx="150" cy="260" rx="22" ry="34"/><ellipse cx="150" cy="308" rx="34" ry="22"/></g></svg><div class="sheen"></div></div>
+      <figcaption><span>צמיד "שרשרת קיץ"</span><span>₪6,100</span></figcaption></figure>
+  </div>
+</div></section>
+
+<div class="wrap">
+<section class="story" id="story">
+  <p class="big disp">את הזהב אני יוצקת בעצמי. כשאתם מחזיקים טבעת, אתם מחזיקים שלושה ימים של עבודה ואת סימני הכלים שלי.</p>
+  <div class="col"><p>האטלייה נפתחה ב-2016 בקומה השנייה של בניין באוהאוס ברוטשילד. החלון פונה לשדרה, ובבוקר האור נופל ישר על שולחן הליטוש.</p><p>אנחנו לא מייצרים מלאי. כל מהדורה נגמרת, ואז מתחילים דגם חדש.</p></div>
+  <p class="sig">מירה לוינסון, צורפת</p>
+</section>
+</div>
+
+<section class="atelier" id="visit"><div class="wrap">
+  <div><span class="n">i.</span><h3>ביקור באטלייה</h3><p>בתיאום מראש, שעה שלמה רק לכם, עם קפה ובלי לחץ לקנות.</p></div>
+  <div><span class="n">ii.</span><h3>התאמה אישית</h3><p>שינוי אורך, החלפת אבן, חריטה בכתב יד. לוקח שבועיים עד שלושה.</p></div>
+  <div><span class="n">iii.</span><h3>לכל החיים</h3><p>ניקוי, ליטוש וחיזוק שיניים לאבנים, ללא תשלום, כל עוד התכשיט אצלכם.</p></div>
+</div></section>
+
+<footer><div class="mark">MEIRA</div><p>שדרות רוטשילד 41, תל אביב · ב׳–ה׳ 11:00–19:00 · בתיאום מראש</p></footer>
+
+<div class="bp-bar"><span>דמו לדוגמה מאת ברכי</span><button type="button" id="bpCta">אהבתי את הסגנון הזה! בואי נבנה לי אתר כזה ←</button></div>
+
+<script>
+(()=>{
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const fine=matchMedia('(pointer: fine)').matches;
+// tilt
+document.querySelectorAll('.tilt').forEach(t=>{
+  const c=t.querySelector('.card3d'),sh=t.querySelector('.sheen');
+  if(reduce)return;
+  t.addEventListener('pointermove',e=>{const r=t.getBoundingClientRect();const x=(e.clientX-r.left)/r.width,y=(e.clientY-r.top)/r.height;
+    c.style.transform=`rotateY(${(x-.5)*16}deg) rotateX(${(.5-y)*14}deg) translateZ(10px)`;sh.style.setProperty('--mx',x*100+'%');sh.style.setProperty('--my',y*100+'%');});
+  t.addEventListener('pointerleave',()=>{c.style.transform='';});
+});
+// magnetic cursor
+if(fine&&!reduce){
+  document.body.classList.add('has-cur');
+  const dot=document.querySelector('.cur'),ring=document.querySelector('.cur-ring');
+  let mx=innerWidth/2,my=innerHeight/2,rx=mx,ry=my,raf=0,target=null;
+  const loop=()=>{let tx=mx,ty=my;
+    if(target){const r=target.getBoundingClientRect();const cx=r.left+r.width/2,cy=r.top+r.height/2;tx=cx+(mx-cx)*.35;ty=cy+(my-cy)*.35;}
+    rx+=(tx-rx)*.18;ry+=(ty-ry)*.18;ring.style.transform=`translate(${rx}px,${ry}px) translate(-50%,-50%)`;dot.style.transform=`translate(${mx}px,${my}px) translate(-50%,-50%)`;
+    raf=(Math.abs(tx-rx)+Math.abs(ty-ry)>.3)?requestAnimationFrame(loop):0;};
+  const kick=()=>{if(!raf)raf=requestAnimationFrame(loop);};
+  addEventListener('pointermove',e=>{if(e.pointerType!=='mouse')return;mx=e.clientX;my=e.clientY;kick();},{passive:true});
+  document.querySelectorAll('a,button,.tilt').forEach(el=>{
+    el.addEventListener('pointerenter',()=>{target=el.matches('a,button')?el:null;ring.classList.add('big');kick();});
+    el.addEventListener('pointerleave',()=>{target=null;ring.classList.remove('big');kick();});
+    if(el.matches('a,button')){el.addEventListener('pointermove',e=>{const r=el.getBoundingClientRect();el.style.transform=`translate(${(e.clientX-r.left-r.width/2)*.15}px,${(e.clientY-r.top-r.height/2)*.25}px)`;});el.addEventListener('pointerleave',()=>{el.style.transform='';});}
+  });
+  document.addEventListener('pointerleave',()=>{dot.style.opacity=ring.style.opacity='0';});
+  document.addEventListener('pointerenter',()=>{dot.style.opacity=ring.style.opacity='1';});
+}
+document.getElementById('bpCta').addEventListener('click',()=>{if(window.parent!==window)window.parent.postMessage({type:'bp:choose-style',id:'luxury'},location.origin);else location.href='/#web/contact?style=luxury';});
+})();
+</script>
+</body>
+</html>

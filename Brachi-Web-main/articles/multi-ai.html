@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Multi-AI Dev Team: מאמר הארכיטקטורה | ברכי פיטוסי</title>
+<meta name="description" content="איך בניתי תוסף VS Code שמתזמר צוות של מודלי שפה מספקים שונים: אכיפת מכסות בשלוש שכבות, גלאי לולאות, prompt caching, עריכה כירורגית של קבצים ו-579 בדיקות.">
+<link rel="canonical" href="https://brachi-web.vercel.app/articles/multi-ai.html">
+<meta property="og:type" content="article">
+<meta property="og:locale" content="he_IL">
+<meta property="og:title" content="Multi-AI Dev Team: מאמר הארכיטקטורה">
+<meta property="og:description" content="תוסף VS Code שמתזמר צוות של מודלי שפה, עם אכיפה בקוד ולא בפרומפט. מאמר עומק על התכנון, מקרי הקצה והבדיקות.">
+<meta property="og:url" content="https://brachi-web.vercel.app/articles/multi-ai.html">
+<meta name="theme-color" content="#ECEEE9">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono&family=IBM+Plex+Sans+Hebrew:wght@400;500;600&family=Karantina:wght@700&display=swap">
+<link rel="stylesheet" href="/assets/css/article.css">
+<script src="/assets/js/article.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">דילוג לתוכן המאמר</a>
+
+<header class="masthead">
+  <a class="home" href="/#engineering">ברכי פיטוסי</a>
+  <a class="back" href="/#engineering">חזרה לפורטפוליו</a>
+</header>
+
+<div class="article-head">
+  <h1>Multi-AI Dev Team</h1>
+  <p class="dek">תוסף ל-VS Code שמריץ צוות פיתוח של כמה מודלי שפה, כל אחד אצל ספק אחר ועם תפקיד משלו, ומחזיק אותם בתוך גבולות שנאכפים בקוד ולא בבקשה מנומסת.</p>
+  <p class="meta">זמן קריאה: <span data-reading-time>14</span> דקות. נכתב על בסיס הקוד בריפו <a href="https://github.com/BrachiA/Multi-AI">BrachiA/Multi-AI</a>, גרסה 3.5.3.</p>
+</div>
+
+<div class="layout">
+  <details class="toc">
+    <summary>תוכן המאמר</summary>
+    <nav aria-label="תוכן המאמר"><ol></ol></nav>
+  </details>
+
+  <main id="main" class="article-body">
+    <p>כשעבדתי עם כמה מודלי שפה במקביל, גיליתי שהבעיה הקשה היא לא לגרום להם לכתוב קוד. הבעיה היא לגרום להם <strong>להפסיק</strong>: להפסיק לשאול עוד שאלת בירור, להפסיק לנסות שוב את אותו תיקון שנכשל, להפסיק לדרוס קובץ שלם כדי לשנות בו שורה אחת. Multi-AI Dev Team הוא התשובה שלי לבעיה הזו. זה תוסף ל-VS Code שבו אני מרכיבה צוות (מנהל, מתכנת, מעצבים ומבקרים) ממודלים של Anthropic, Google, OpenAI ו-xAI, ו-Orchestrator שרץ בתוך העורך מנהל ביניהם את העבודה וכותב קוד ישירות לתיקיית הפרויקט.</p>
+
+    <section class="chapter" aria-labelledby="ch1">
+      <span class="chapter-no">פרק 1</span>
+      <h2 id="ch1">האתגר ההנדסי בשטח, ולמה פתרונות מדף נכשלים</h2>
+
+      <p>כלי AI לכתיבת קוד עובדים טוב כשיש מודל אחד ומשתמש אחד שמסתכל עליו. ברגע שמוסיפים עוד מודל, למשל מבקר שבודק את מה שהמתכנת כתב, נוצרת מערכת מבוזרת קטנה עם כל הבעיות של מערכת מבוזרת: מי מחזיק את מקור האמת, מה קורה כשאחד הצדדים נופל, ואיך יודעים שהתהליך תקוע ולא רק איטי.</p>
+
+      <h3>שלוש בעיות שראיתי שוב ושוב</h3>
+      <p><strong>מודל לא סופר.</strong> אפשר לכתוב בפרומפט "שאל לכל היותר חמש שאלות בירור", והמודל יסכים בנימוס. אחרי כמה תורות, כשההיסטוריה מתארכת, הוא שואל שאלה שישית. זה לא זדון. מודל שפה פשוט לא מחזיק מונה. כל מנגנון שתלוי בכך שהמודל יזכור את הספירה ייכשל בסוף, ובדרך כלל בדיוק כשהשיחה ארוכה ויקרה.</p>
+      <p><strong>לולאה עיוורת.</strong> המתכנת כותב קוד, הבנייה נכשלת, הוא מתקן, הבנייה נכשלת באותה שגיאה בדיוק, והוא מתקן שוב. בלי מנגנון שמזהה ש"זו אותה שגיאה", התהליך שורף תקציב בקצב קבוע. מה שהופך את הזיהוי לקשה הוא שהפלט <em>נראה</em> שונה בכל פעם: חותמת זמן אחרת, נתיב זמני אחר, כתובת זיכרון אחרת.</p>
+      <p><strong>דריסה שקטה.</strong> מודל שמתבקש לשנות פונקציה אחת בקובץ של 400 שורות נוטה לכתוב את הקובץ כולו מחדש. ברוב המקרים זה עובד. במקרים האחרים נעלמת פונקציה שהוא לא "זכר", ואף אחד לא שם לב עד שמשהו אחר נשבר.</p>
+
+      <h3>למה לא להשתמש במה שקיים</h3>
+      <p>הכלים הקיימים שעבדתי איתם מניחים ספק אחד ותפקיד אחד. מסגרות לסוכנים מרובים בדרך כלל משאירות את האכיפה למודל עצמו: הגבולות כתובים בפרומפט, ואם המודל מתעלם מהם, אין מי שיעצור. רציתי משהו אחר: <strong>הגבולות יושבים בקוד שרץ אצלי</strong>, והמודלים הם רכיבים שאפשר להחליף. הרכב הצוות הוא קובץ JSON בתוך הפרויקט, <code>.multi-ai/team.json</code>, ואפשר להריץ בו מנהל מ-Anthropic, מתכנת מ-OpenAI ומבקר אבטחה מ-xAI, כל אחד עם כללים משלו.</p>
+
+      <p>מכאן נגזרה דרישה שליוותה את כל הפרויקט: כל החלטה שקשורה לבטיחות, לעלות או להרשאות נבדקת בגבול שהמודל לא יכול לחצות. אם המודל נדרש לשתף פעולה כדי שהבדיקה תעבוד, היא לא בדיקה.</p>
+    </section>
+
+    <section class="chapter" aria-labelledby="ch2">
+      <span class="chapter-no">פרק 2</span>
+      <h2 id="ch2">ארכיטקטורת המערכת וזרימת הנתונים מקצה לקצה</h2>
+
+      <p>התוסף בנוי משלוש שכבות: ממשק (לוח webview בסרגל הצד של VS Code), Orchestrator שמנהל את ה-Pipeline, ושכבת ספקים שמתרגמת בקשה אחידה לפורמט של כל ספק. אין לו אף תלות ריצה חיצונית. <code>npm install</code> מתקין רק TypeScript וטיפוסים, וכל הקריאות לספקים נכתבו ישירות מעל <code>fetch</code>.</p>
+
+      <figure>
+        <svg viewBox="0 0 360 560" role="img" aria-labelledby="fig1t fig1d">
+          <title id="fig1t">זרימת העבודה ב-Multi-AI Dev Team</title>
+          <desc id="fig1d">המשתמש מאשר מסמך איפיון, המנהל מחלק משימות, המתכנת כותב דרך כלים מוגבלי הרשאות, הבנייה נבדקת בגלאי הלולאות, והמבקרים מחזירים הערות. QuotaLedger עומד בין כל שלב לבין הקריאה לספק.</desc>
+          <defs><marker id="ah1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#13252B"/></marker></defs>
+          <g class="fig-node"><rect x="70" y="10" width="220" height="56"/><text x="180" y="36" text-anchor="middle">מסמך איפיון</text><text class="sub" x="180" y="55" text-anchor="middle">מאושר על ידי המשתמש</text></g>
+          <path class="fig-edge" d="M180 66V96" marker-end="url(#ah1)"/>
+          <g class="fig-node hot"><rect x="70" y="98" width="220" height="56"/><text x="180" y="124" text-anchor="middle">מנהל</text><text class="sub" x="180" y="143" text-anchor="middle">מקור האמת לספירת סבבים</text></g>
+          <path class="fig-edge" d="M180 154V184" marker-end="url(#ah1)"/>
+          <g class="fig-node"><rect x="70" y="186" width="220" height="56"/><text x="180" y="212" text-anchor="middle">מתכנת</text><text class="sub" x="180" y="231" text-anchor="middle">read_file, edit_file, run_build</text></g>
+          <path class="fig-edge" d="M180 242V272" marker-end="url(#ah1)"/>
+          <g class="fig-node"><rect x="70" y="274" width="220" height="56"/><text x="180" y="300" text-anchor="middle">בנייה מקומית</text><text class="sub" x="180" y="319" text-anchor="middle">פלט מוגבל, הריגת עץ תהליכים</text></g>
+          <path class="fig-edge" d="M180 330V360" marker-end="url(#ah1)"/>
+          <g class="fig-node"><rect x="70" y="362" width="220" height="56"/><text x="180" y="388" text-anchor="middle">loopGuard</text><text class="sub" x="180" y="407" text-anchor="middle">אותה שגיאה 3 פעמים? עוצרים</text></g>
+          <path class="fig-edge" d="M180 418V448" marker-end="url(#ah1)"/>
+          <g class="fig-node"><rect x="70" y="450" width="220" height="56"/><text x="180" y="476" text-anchor="middle">מבקרים ומעצבים</text><text class="sub" x="180" y="495" text-anchor="middle">קריאה בלבד, חוות דעת מובנית</text></g>
+          <path class="fig-edge dash" d="M290 478H318V214H294" marker-end="url(#ah1)"/>
+          <text class="fig-label" x="342" y="346" text-anchor="middle" transform="rotate(-90 342 346)">הערות חוזרות למתכנת</text>
+          <g class="fig-node ghost"><rect x="10" y="520" width="340" height="34"/><text x="180" y="542" text-anchor="middle">כל קריאה לספק עוברת קודם ב-QuotaLedger</text></g>
+        </svg>
+        <figcaption>הזרימה הראשית. הקו המקווקו הוא סבב ביקורת שחוזר למתכנת. כל סבב כזה נספר ב-QuotaLedger לפני שהקריאה יוצאת לרשת.</figcaption>
+      </figure>
+
+      <h3>צוות כנתונים, לא כקוד</h3>
+      <p>הצוות הוא רשימה. לכל חבר יש <code>id</code>, <code>role</code> (מנהל אחד, מתכנת אחד, אפס או יותר מעצבים ומבקרים), <code>provider</code> ו-<code>model</code>. חבר יכול להיות <code>critical</code> או <code>secondary</code>. נפילה של חבר קריטי עוצרת את התהליך. נפילה של חבר משני מעבירה אותו למפקח רקע (<code>secondarySupervisor.ts</code>) שמנסה שוב כל כמה דקות, בזמן ששאר ה-Pipeline ממשיך. אם המפקח מוותר, הדבר מסומן במפורש בתוצר ולא נבלע בשקט.</p>
+      <p>החלטתי שיהיה <strong>מנהל אחד בדיוק</strong>. המנהל הוא מקור האמת לספירת הסבבים מול שאר הצוות, ושני מקורות אמת היו סותרים זה את זה.</p>
+
+      <h3>שכבת ספקים אחידה</h3>
+      <p>כל ספק מקבל אותה בקשה פנימית ומתרגם אותה. דוגמה שמראה כמה פרטים מסתתרים כאן היא עומק החשיבה. יש למשתמש סולם אחד, <code>minimal</code> עד <code>max</code>, והקוד מתרגם אותו לפרמטר הנכון בכל ספק: <code>output_config.effort</code> ב-Anthropic, <code>thinkingLevel</code> ב-Gemini, <code>reasoning_effort</code> ב-OpenAI וב-xAI. כשערך לא נתמך אצל ספק מסוים, הוא מוצמד לערך הקרוב, וההצמדה מוצגת למשתמש מראש ולא קורית בשקט. אותו עיקרון חל על פרמטרים שהוסרו: <code>temperature</code> ו-<code>top_p</code> מחזירים שגיאת 400 במודלים הנוכחיים של Anthropic, ולכן הנרמול חוסם אותם עם אזהרה במקום לתת לבקשה להיכשל.</p>
+
+      <h3>Prompt caching מתוכנן, לא מקרי</h3>
+      <p>תהליך של סוכנים חוזר על עצמו: אותו system prompt, אותה רשימת כלים ואותו הקשר פרויקט נשלחים שוב בכל סבב. ב-Anthropic תכננתי את מבנה הבקשה כך שהחלקים היציבים יקבלו נקודת מטמון, והחלק הדינמי (המונים וההנחיה של הסבב הנוכחי) יישב בזנב נפרד:</p>
+<pre><code><span class="c">// system כגוש תוכן ולא כמחרוזת, כדי שאפשר יהיה לסמן אותו למטמון</span>
+system: [{ type: <span class="s">'text'</span>, text: req.system, cache_control: { type: <span class="s">'ephemeral'</span> } }],
+
+<span class="c">// רשימת הכלים קבועה לכל אורך חיי התפקיד</span>
+(tools[tools.length - <span class="k">1</span>]).cache_control = { type: <span class="s">'ephemeral'</span> };
+
+<span class="c">// system(1) + tools(1) + cacheBoundary(1) + הבלוק האחרון(1) = 4, בדיוק בתקרה של Anthropic</span>
+applyCacheBreakpoints(messages);</code></pre>
+      <span class="code-cap">מתוך <code>src/llm/anthropic.ts</code>, מקוצר.</span>
+      <p>ארבע נקודות מטמון הן התקרה ש-Anthropic מאפשרת לבקשה אחת, והמבנה מנצל אותה בדיוק. בסוף כל ריצה הדוח מציג כמה מטוקני הקלט נקראו מהמטמון ולא עברו עיבוד מלא. המספר הזה משתנה לפי הפרויקט ואורך הריצה, ולכן לא תמצאו אותו כאן כמספר אחד. הוא מחושב מחדש מה-usage שהספק מחזיר בכל ריצה.</p>
+
+      <h3>זיכרון שלא מתנפח</h3>
+      <p>תהליך פיתוח אמיתי נמשך עשרות סבבים, וכל סבב מוסיף להיסטוריה. אם שולחים את כל ההיסטוריה בכל קריאה, העלות גדלה ריבועית והמודל מתחיל לאבד את הפרטים החשובים בתוך הרעש. <code>memory.ts</code> מטפל בזה בשלושה צעדים: כל כמה סבבים המנהל כותב סיכום קצר שמתבסס על הסיכום הקודם ועל התמלול מאז, ההיסטוריה הישנה נמחקת מאובייקט ההקשר, ושאר הסוכנים מקבלים רק את הסיכום העדכני.</p>
+      <p>שני פרטים קטנים הפכו את זה לשמיש. ארבע התורות האחרונות נשמרות מילה במילה גם אחרי הסיכום, כי סיכום של "מה ביקשתי עכשיו" תמיד מאבד ניואנס. ומהערות הביקורת נשמרים רק שני הסבבים האחרונים. הערה מלפני חמישה סבבים שכבר טופלה לא צריכה לחזור לפרומפט, והיא רק מבלבלת את המתכנת. ואם הסיכום חוזר ריק, הסיכום הקודם נשאר. כשל של מודל הסיכום לא מוחק זיכרון.</p>
+
+      <h3>תיאורי מודלים בעברית בלי לקרוא לאף מודל</h3>
+      <p>בבורר המודלים אני מציגה הסבר קצר בעברית לכל מודל שהחשבון של המשתמש רואה. היה אפשר לבקש ממודל לכתוב את ההסברים, אבל זה עולה כסף, דורש רשת, ועלול להמציא יכולות. <code>modelAutoDescription.ts</code> עושה את זה באופן דטרמיניסטי: קודם תיאור מוכר אם יש, אחר כך מילון מונחים מתוך שם המודל (pro, flash, mini, codex, embed), ובסוף נתונים שהספק עצמו מדווח, כמו חלון הקשר ותקרת פלט. אין משפט שלא נשען על מונח בשם או על נתון מהספק. מודל הטמעה מסומן "לא מתאים לתפקיד בצוות", כי הוא לא יודע לכתוב קוד.</p>
+    </section>
+
+    <section class="chapter" aria-labelledby="ch3">
+      <span class="chapter-no">פרק 3</span>
+      <h2 id="ch3">התלבטויות הנדסיות ופתרון מקרי קצה קשים</h2>
+
+      <h3>אכיפת מכסות בשלוש שכבות</h3>
+      <p>הפתרון לבעיית "המודל לא סופר" הוא לא לבקש ממנו לספור טוב יותר, אלא לבנות שלוש שכבות שכל אחת משלימה את החולשה של קודמתה:</p>
+      <ol>
+        <li><strong>ספירה עצמית שקופה.</strong> כל מודל מתבקש לציין "זו שאלה 3 מתוך 5". זו לא אכיפה. המטרה היא שהמודל יתכנן לסכם לפני שייקטע, ושהמשתמש יראה איפה הוא עומד.</li>
+        <li><strong>ציות למונה של המנהל.</strong> המתכנת והמעצבים מצייתים למספר שהמנהל מדווח, לא לספירה שלהם.</li>
+        <li><strong>אכיפה קשיחה ב-Orchestrator.</strong> <code>QuotaLedger</code> סופר את הקריאות שבוצעו בפועל וזורק שגיאה <em>לפני</em> שהקריאה יוצאת.</li>
+      </ol>
+<pre><code><span class="c">/** "מושך" יחידה אחת מהמכסה לפני ביצוע הקריאה בפועל. */</span>
+consume(kind: QuotaKind): number {
+  <span class="k">const</span> limit = <span class="k">this</span>.limitFor(kind);
+  <span class="k">if</span> (<span class="k">this</span>.counters[kind] &gt;= limit) {
+    <span class="k">throw new</span> QuotaExceededError(kind, <span class="k">this</span>.counters[kind], limit);
+  }
+  <span class="k">this</span>.counters[kind] += <span class="k">1</span>;
+  <span class="k">return this</span>.counters[kind];
+}
+
+<span class="c">/** מחזיר יחידה שנמשכה אך לא נוצלה: תור שנקטע, קריסת מודל, שלב שלא התבצע. */</span>
+refund(kind: QuotaKind): <span class="k">void</span></code></pre>
+      <span class="code-cap">מתוך <code>src/orchestrator/quota.ts</code>.</span>
+      <p>ההתלבטות המעניינת הייתה סביב <code>refund</code>. בגרסה הראשונה, משתמש שעצר תור באמצע "שילם" עליו סבב שלם. זה נכון חשבונאית אבל מתסכל בפועל, כי הפרעה תמימה אכלה סבב. מצד שני, החזר חופשי היה פותח פרצה. ההכרעה: יחידה מוחזרת רק כשהשלב לא התבצע בפועל (הפרעה, קריסה), והמונים נכתבים להקשר שנשמר ל-<code>state.json</code>, כך שגם אחרי הפעלה מחדש של VS Code הספירה לא מתאפסת.</p>
+
+      <h3>גלאי לולאות שלא מסתכל על המודל</h3>
+      <p>הניסיון הראשון היה להשוות את הבקשות למודל. זה לא עבד: ההיסטוריה המצטברת משנה כל בקשה מעט, גם כשהמודל תקוע לגמרי. מה שנשאר באמת זהה כשאין התקדמות הוא <strong>התוצאה הנצפית</strong>: הפלט של הבנייה, או טקסט ההערות של המבקר. אז <code>loopGuard.ts</code> מנרמל את הפלט ומשווה חתימות:</p>
+<pre><code><span class="k">export function</span> normalizeForLoopSignature(text: string): string {
+  <span class="k">return</span> text
+    .replace(<span class="s">/\r\n/g</span>, <span class="s">'\n'</span>)                     <span class="c">// אותו פלט מ-Windows ומ-Unix</span>
+    .replace(TRUNCATION_MARKER, <span class="s">'[... &lt;N&gt; bytes truncated ...]'</span>)
+    .replace(TIMESTAMP, <span class="s">'&lt;TS&gt;'</span>)
+    .replace(WINDOWS_PATH, windowsPathToToken)  <span class="c">// שומר את סיומת השורה/עמודה</span>
+    .replace(UNIX_PATH, <span class="s">'&lt;PATH&gt;'</span>)
+    .replace(HEX_PREFIXED, <span class="s">'&lt;HEX&gt;'</span>)
+    .replace(HEX_ISH, <span class="s">'&lt;HEX&gt;'</span>);
+}</code></pre>
+      <span class="code-cap">מתוך <code>src/orchestrator/loopGuard.ts</code>.</span>
+      <p>כל פרט בנרמול נולד ממקרה קצה אמיתי. נתיב זמני מוחלף בטוקן, אבל <strong>מספר השורה והעמודה נשארים</strong>, כי אותה שגיאה בשורה אחרת היא התקדמות ולא לולאה. רצף הקס "עירום" מוחלף רק אם יש בו לפחות אות אחת בין a ל-f, אחרת מספר שורה עשרוני רגיל היה מתנרמל בטעות ומטשטש הבדל אמיתי. ו-<code>0x</code> נבדק לפני התבנית הכללית, כי ה-x שבאמצע אינו תו הקס ו-<code>\b</code> לא היה חוצה אותו. החתימה היא 24 תווים מ-SHA-256 של הפלט המנורמל, כדי לא לשמור פלט גולמי ענק בקובץ המצב. ברירת המחדל עוצרת אחרי שלוש חזרות זהות, ואת המעקב מנהלים בנפרד לכל הקשר: בנייה, וכל שלב ביקורת בנפרד. כך התקדמות במקום אחד לא מאפסת מעקב במקום אחר.</p>
+
+      <h3>edit_file: החלפה מדויקת במקום דריסה</h3>
+      <p>כלי <code>edit_file</code> מקבל מחרוזת ישנה ומחרוזת חדשה, ומחליף רק אותה. שלושה כללים הופכים אותו לבטוח:</p>
+      <ul>
+        <li>אם המחרוזת לא נמצאה, הכלי מחזיר <code>not_found</code>. אם היא נמצאה יותר מפעם אחת, הוא מחזיר <code>ambiguous</code> עם מספרי השורות. אין ניחוש.</li>
+        <li>הקובץ חייב להיות כזה שהסוכן קרא, ושלא השתנה מאז. אחרת המודל מחליף לפי זיכרון ישן.</li>
+        <li>הכלי מנרמל CRLF ל-LF לפני ההתאמה ומחזיר את סוף השורה המקורי אחריה. מודלים כותבים LF גם כשהקובץ CRLF, ובלי הנרמול ההתאמה הייתה נכשלת בשקט על Windows.</li>
+      </ul>
+      <p>הפרומפט של המתכנת אומר במפורש: "קובץ קיים: קרא אותו ב-read_file ואז שנה ב-edit_file רק את הבלוק הרלוונטי". אבל ההגנה האמיתית היא שהכלי עצמו מסרב לעבוד על קובץ שלא נקרא.</p>
+
+      <h3>הרשאות בגבול הכלי, לא בפרומפט</h3>
+      <p>מודל יכול להתעלם מהנחיה, או להיות מוסט ממנה על ידי הזרקה בתוך קובץ שהוא קרא. לכן מפת ההרשאות (<code>rolePolicy.ts</code>) נאכפת בכלים עצמם. מנהל, מעצב ומבקר מקבלים כלי קריאה בלבד. רק המתכנת כותב ומריץ בנייה. ואף תפקיד לא ניגש ל-<code>tests/hidden/**</code>, <code>.multi-ai/**</code>, <code>.vscode/**</code> ו-<code>.git/**</code>. דחייה מוחזרת לסוכן כהודעה מובנית שלא מגלה אם הקובץ קיים, ונרשמת כאירוע <code>access_denied</code> בקופסה השחורה.</p>
+
+      <div class="aside-note">
+        <h3>פער שאני יודעת עליו</h3>
+        <p>הבידוד נאכף על כלי הקבצים, אבל ה-shell של הבנייה עדיין יכול לקרוא את <code>tests/hidden</code>. זה מתועד ב-CHANGELOG כפער ידוע ומתוכנן לסגירה בשלב מאוחר יותר. העדפתי לתעד אותו בגלוי מאשר להציג בידוד שלם שאינו כזה.</p>
+      </div>
+
+      <h3>כשמודל משני נופל באמצע</h3>
+      <p>ספקים נופלים: מכסה שנגמרה, שגיאת 529, רשת. השאלה היא מה עושים עם התהליך כולו. החלטתי שהתשובה תלויה בתפקיד ולא בשגיאה. אם המתכנת נופל, אין טעם להמשיך, וכל התהליך נעצר עם הודעה ברורה. אם מעצב או מבקר נופל, <code>secondarySupervisor</code> מכניס אותו למצב <code>offline_retrying</code>: בדיקת זמינות זולה מול הספק כל כמה דקות, ברקע, בזמן שהמתכנת ממשיך לעבוד. כשהמודל חוזר, הוא מצטרף לסבב הבא. אחרי מספר ניסיונות שהמשתמש קובע, המערכת מוותרת ומסמנת בתוצר שהשלב לא בוצע.</p>
+      <p>המילה החשובה כאן היא "מסמנת". הכי קל היה לדלג בשקט, והתוצר היה נראה שלם. אבל משתמש שמקבל קוד בלי ביקורת אבטחה צריך לדעת שהוא קיבל קוד בלי ביקורת אבטחה.</p>
+
+      <h3>תהליכים שלא מתים</h3>
+      <p>הבנייה מריצה תהליכים, ותהליכים מולידים תהליכים. <code>child.kill()</code> הורג רק את ה-shell, ונכד כמו שרת פיתוח ממשיך לרוץ ומחזיק את צינור הפלט פתוח, כך שה-timeout בכלל לא מסתיים. ב-POSIX הילד נוצר כראש קבוצת תהליכים והריגה עם PID שלילי הורגת את כל הקבוצה. ב-Windows זה לא עובד, ולכן <code>taskkill /T</code>, ואחרי שתי שניות גם <code>/F</code>. במקביל, הפלט מוגבל ל-64KB לכל stream (16KB ראש ו-48KB זנב) עם סמן קיטוע, והסמן הזה מנורמל בגלאי הלולאות כדי שמספר הבתים שנקטעו לא ישבור את החתימה.</p>
+    </section>
+
+    <section class="chapter" aria-labelledby="ch4">
+      <span class="chapter-no">פרק 4</span>
+      <h2 id="ch4">בדיקות אוטומטיות, אבטחה ותוצאות מדידות</h2>
+
+      <h3>579 בדיקות, ו-CI על כל push</h3>
+      <p>בשער האחרון שמתועד ב-<code>PROGRESS.md</code> רצו 579 בדיקות, כולן ירוקות. הן מכסות את הליבה, את ה-Pipeline, את הרוסטר, את הכללים, את הספקים, את ההרצה המקומית ואת הפעלת התוסף. GitHub Actions מריץ על כל push קומפילציה, lint ובדיקות על Node 20, עם <code>cancel-in-progress</code> כדי ש-push חדש יבטל ריצה ישנה.</p>
+      <p>שלושה דפוסי בדיקה החזיקו את הפרויקט לאורך זמן:</p>
+      <ul>
+        <li><strong>לקוח LLM מזויף ששומר תמונת מצב.</strong> <code>FakeClient</code> שומר <code>structuredClone</code> של כל בקשה ברגע הקריאה. לפני התיקון הוא שמר הפניה, ובדיקה שבדקה "כמה הודעות נשלחו בקריאה השנייה" ראתה את המערך כפי שהוא <em>אחרי</em> שהתארך. הוספתי בדיקה שנכשלה לפני התיקון ועברה אחריו.</li>
+        <li><strong>Golden files.</strong> ה-HTML של הלוח וה-prompts של המתכנת נבדקים מול קבצי golden. ריפקטור שמשנה תו אחד בפרומפט נכשל בבדיקה ולא עובר בשקט.</li>
+        <li><strong>בדיקה אדומה לפני תיקון.</strong> כל תיקון ב-PROGRESS.md מתועד עם הבדיקות שנכשלו לפניו. בתיקון דיווח העלויות ביציאה חריגה, למשל, ארבע מתוך שבע בדיקות חדשות נכשלו לפני השינוי.</li>
+      </ul>
+
+      <h3>אבטחה</h3>
+      <ul>
+        <li><strong>CSP קשיח ללוח.</strong> <code>default-src 'none'</code>, סקריפט רק עם nonce קריפטוגרפי חדש בכל רינדור (16 בתים מ-<code>crypto.randomBytes</code>), ו-<code>connect-src</code>, <code>frame-src</code>, <code>form-action</code> חסומים. בדיקת jsdom מוודאת ש-<code>&lt;script&gt;</code> שמוזרק דרך שם מודל או הודעת לוג מוצג כטקסט.</li>
+        <li><strong>מפתחות API ב-SecretStorage המוצפן</strong> של VS Code, עם מיגרציה חד-פעמית שמוחקת מפתחות ישנים מההגדרות.</li>
+        <li><strong>מצב חסוי.</strong> כשהוא פעיל, קריאה לחבר צוות שאינו בתוכנית בתשלום נחסמת לפני שהיא יוצאת לרשת. קובץ צוות פגום נחשב חסוי, כלומר המערכת נכשלת לצד הבטוח.</li>
+      </ul>
+
+      <h3>מה נמדד</h3>
+      <p>כל ריצה נרשמת בקופסה שחורה (<code>flightRecorder.ts</code>). שימוש בטוקנים מדווח פעם אחת, גם ביציאה לא תקינה. קריאה שנכשלה נרשמת כאירוע <code>usage_unknown</code> עם hash של הבקשה, ולא נספרת בשקט כאפס. בעיניי זה ההבדל בין דוח עלויות שמרגיע לבין דוח עלויות נכון.</p>
+
+      <h3>מה הייתי עושה אחרת</h3>
+      <p>הייתי מתחילה מהקופסה השחורה ולא מגיעה אליה בשלב 3. חלק גדול מהבאגים שתיקנתי היו באגים של "מה בעצם קרה בריצה הזו", ואירועים מובנים מהיום הראשון היו חוסכים שעות של שחזור. והייתי סוגרת את בידוד ה-shell יחד עם בידוד הכלים, ולא אחריו. פער ידוע הוא עדיין פער.</p>
+    </section>
+  </main>
+</div>
+
+<footer class="article-foot">
+  <div class="in">
+    <div>
+      <h2>רוצים לדבר על זה?</h2>
+      <p>אני זמינה לשאלות על הארכיטקטורה, לראיונות ולפרויקטים.</p>
+      <p><a href="https://wa.me/972547568966">וואטסאפ: <span class="ltr">054-756-8966</span></a></p>
+      <p><a href="mailto:Baloo532004@gmail.com" class="ltr">Baloo532004@gmail.com</a></p>
+    </div>
+    <div>
+      <h2>עוד מאמרים</h2>
+      <ul>
+        <li><a href="/articles/benefits-wallet.html">ארנק הטבות: ארבע אפליקציות, שרת אחד ומקור אמת יחיד</a></li>
+        <li><a href="/articles/assistiq.html">AssistIQ: עוזר AI שמקשיב לשיחת שירות בזמן אמת</a></li>
+        <li><a href="/#engineering">חזרה לפורטפוליו</a></li>
+      </ul>
+    </div>
+  </div>
+</footer>
+</body>
+</html>
