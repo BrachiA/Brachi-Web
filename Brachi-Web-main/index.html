@@ -42,10 +42,13 @@
 <section class="dial" aria-labelledby="dial-title">
   <h1 id="dial-title" class="dial-sentence">
     <span class="dial-lead">אני בונה</span>
-    <span class="dial-words">
-      <a class="dial-word" href="#web" data-room-link="web"><span class="w-out">אתרים</span><span class="w-in" aria-hidden="true">אתרים</span></a>
-      <a class="dial-word" href="#ai-video" data-room-link="ai-video"><span class="w-out">סרטונים</span><span class="w-in" aria-hidden="true">סרטונים</span></a>
-      <a class="dial-word" href="#engineering" data-room-link="engineering"><span class="w-out">מערכות</span><span class="w-in" aria-hidden="true">מערכות</span></a>
+    <span class="dial-words" data-dial>
+      <a class="dial-word" href="#web" data-room-link="web" data-peek="5 אתרי דמו חיים, מחירים וטופס פנייה"><span class="w-glyph"><span class="w-out">אתרים</span><span class="w-in" aria-hidden="true">אתרים</span></span><sup class="w-count" aria-hidden="true">5</sup><span class="w-peek">5 אתרי דמו חיים, מחירים וטופס פנייה</span></a>
+      <a class="dial-word" href="#ai-video" data-room-link="ai-video" data-peek="קיר סרטונים אנכיים ושלושה שירותי וידאו"><span class="w-glyph"><span class="w-out">סרטונים</span><span class="w-in" aria-hidden="true">סרטונים</span></span><sup class="w-count" aria-hidden="true" data-video-count>6</sup><span class="w-peek">קיר סרטונים אנכיים ושלושה שירותי וידאו</span></a>
+      <a class="dial-word" href="#engineering" data-room-link="engineering" data-peek="3 מערכות, מאמרי עומק וקורות חיים"><span class="w-glyph"><span class="w-out">מערכות</span><span class="w-in" aria-hidden="true">מערכות</span></span><sup class="w-count" aria-hidden="true">3</sup><span class="w-peek">3 מערכות, מאמרי עומק וקורות חיים</span></a>
+      <span class="dial-rail" aria-hidden="true"><i class="dial-tick"></i><i class="dial-tick"></i><i class="dial-tick"></i></span>
+      <span class="dial-thumb" aria-hidden="true"></span>
+      <span class="dial-pill" aria-hidden="true"></span>
     </span>
   </h1>
   <div class="dial-answers" aria-live="polite">
@@ -362,6 +365,7 @@
   <div class="wrap foot-in">
     <p>ברכי פיטוסי, 2026. <a href="tel:+972547568966" dir="ltr">054-756-8966</a> <a href="mailto:Baloo532004@gmail.com" dir="ltr">Baloo532004@gmail.com</a></p>
     <button type="button" class="link-btn" data-offline-test>בדקו מה קורה כשהאינטרנט נופל ⚡</button>
+    <button type="button" class="admin-lock" data-admin-lock aria-label="כניסת מנהל" title="כניסת מנהל"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></button>
   </div>
 </footer>
 

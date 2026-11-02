@@ -1,4 +1,5 @@
 import { createRouter } from './router.js';
+import { initDial } from './dial.js';
 
 const WA = 'https://wa.me/972547568966';
 const THEME = { web: '#ECEEE9', 'ai-video': '#0E1F24', engineering: '#ECEEE9' };
@@ -26,10 +27,12 @@ const rooms = {
   },
   'ai-video': {
     async init(panel) {
-      const [{ initVideoWall }, { aiVideos, mediaConfig }] = await Promise.all([
-        import('./video-wall.js'), import('./media-manifest.js'),
+      const [{ initVideoWall }, { mediaConfig }, { loadPublicList }] = await Promise.all([
+        import('./video-wall.js'), import('./media-manifest.js'), import('./video-store.js'),
       ]);
-      return initVideoWall(panel, aiVideos, mediaConfig);
+      const list = await loadPublicList();
+      if (dial) dial.setCount('ai-video', list.length);
+      return initVideoWall(panel, list, mediaConfig);
     },
   },
   engineering: {
@@ -64,6 +67,7 @@ function render({ room, prev, anchor, changed, cause }) {
       if (a.dataset.roomLink === room) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
     }
     for (const p of $$('[data-answer]')) p.hidden = p.dataset.answer !== room;
+    if (dial) dial.update(room, { userInitiated: cause !== 'init' });
     $('meta[name="theme-color"]').setAttribute('content', THEME[room]);
     if (prev && ctrl[prev]) ctrl[prev].then((c) => c.leave && c.leave());
     ensure(room).then((c) => { if (document.body.dataset.room === room && c.enter) c.enter(); });
@@ -129,12 +133,28 @@ const waVideo = $('[data-wa-video]');
 if (waVideo) waVideo.href = waLink('היי ברכי, אני מעוניין/ת בסרטון AI. הנה מה שאני צריך/ה:');
 
 // ── Start ───────────────────────────────────────────────────────────────
+let dial = null;
 const router = createRouter(render);
 router.start();
+dial = initDial();
+dial.update(router.current());
+
+// ── Editing mode (video slots): the lock in the footer or Ctrl/Cmd+Shift+A ──
+const adminHooks = { go: (room) => { if (router.current() !== room) router.go(room); }, getWall: () => ensure('ai-video') };
+const openAdmin = () => import('./admin.js').then((m) => m.openAdmin(adminHooks)).catch((e) => console.warn('admin', e));
+$('[data-admin-lock]').addEventListener('click', openAdmin);
+addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'A' || e.key === 'a' || e.code === 'KeyA')) { e.preventDefault(); openAdmin(); }
+});
+try { if (Number(sessionStorage.getItem('bp-admin-session') || 0) > Date.now()) import('./admin.js').then((m) => m.resumeIfActive(adminHooks)); } catch { /* */ }
 
 // Prefetch the next rooms when the browser is idle (code only, no media)
 const idle = window.requestIdleCallback || ((fn) => setTimeout(fn, 1500));
-idle(() => { import('./diagrams.js'); import('./video-wall.js'); import('./playground.js'); });
+idle(() => {
+  import('./diagrams.js'); import('./video-wall.js'); import('./playground.js');
+  // The number of video slots on the dial comes from the published list (a small JSON, no video)
+  import('./video-store.js').then((m) => m.loadPublicList()).then((l) => dial.setCount('ai-video', l.length)).catch(() => {});
+});
 
 // Offline + Service Worker
 import('./offline.js').then((m) => m.initOffline()).catch(() => {});

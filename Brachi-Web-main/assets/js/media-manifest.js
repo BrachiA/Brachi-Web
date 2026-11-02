@@ -1,5 +1,6 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// The video manifest. This is the only file you edit to add videos.
+// The default video manifest. Since v2.1 videos are managed through the on-site editor (lock icon in the footer),
+// which publishes videos-manifest.json to Google Cloud Storage. This file is the fallback when nothing has been published.
 //
 // Add a video in one of three ways (one per entry):
 //   1. Cloudinary: set mediaConfig.cloudinaryCloud once, then put the public ID in cloudinaryId.
@@ -15,6 +16,10 @@
 export const mediaConfig = {
   cloudinaryCloud: '',   // e.g. 'brachi-studio'
   r2Base: '',            // e.g. 'https://media.brachi.dev/'
+  // Google Cloud Storage: once set, the site reads the video list published from the editor
+  // at https://storage.googleapis.com/<gcsBucket>/<gcsPrefix>videos-manifest.json
+  gcsBucket: '',         // e.g. 'brachi-videos'
+  gcsPrefix: 'brachi-web/',
 };
 
 /** @type {import('./video-wall.js').AiVideo[]} */

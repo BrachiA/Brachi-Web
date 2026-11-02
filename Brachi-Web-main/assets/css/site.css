@@ -118,39 +118,84 @@ body.dial-compact .top { border-block-end-color: var(--hairline); }
   .bar-rooms a { font-size: 1.45rem; padding-inline: 8px; }
 }
 
-/* ── Dial: the one bold move ── */
-.dial { max-width: var(--max); margin-inline: auto; padding: clamp(16px, 4vw, 48px) var(--gutter) clamp(28px, 4vw, 56px); }
+/* ── Dial: the one bold move ──
+   Affordance without a second menu: a rail with three stops and a sliding thumb (a switch),
+   a count of what is in each room, a short tour on first entry, a hover preview, and one gentle nudge. */
+.dial { max-width: var(--max); margin-inline: auto; padding: clamp(16px, 4vw, 48px) var(--gutter) clamp(36px, 4.6vw, 64px); }
 .dial-sentence { font: 700 clamp(3.25rem, 9vw, 8rem)/.92 var(--f-display); letter-spacing: -.005em; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 .28em; }
 .dial-lead { color: var(--text); }
-.dial-words { display: inline-flex; flex-wrap: wrap; gap: 0 .28em; }
-.dial-word {
-  position: relative; display: inline-block; text-decoration: none; cursor: pointer;
-  padding-block: .04em .1em;
-}
+.dial-words { position: relative; display: inline-flex; flex-wrap: wrap; gap: 0 .34em; padding-bottom: .16em; }
+.dial-word { position: relative; display: inline-flex; align-items: flex-start; text-decoration: none; cursor: pointer; padding-block: .04em .1em; -webkit-tap-highlight-color: transparent; }
+.dial-word:focus-visible { outline-offset: 6px; border-radius: 4px; }
+.w-glyph { position: relative; display: inline-block; }
 .dial-word .w-out { color: transparent; -webkit-text-stroke: 1.5px var(--muted); transition: -webkit-text-stroke-color .2s; }
 .dial-word .w-in {
-  position: absolute; inset: 0; padding-block: inherit; color: var(--text);
+  position: absolute; inset: 0; color: var(--text);
   clip-path: inset(0 0 0 100%); /* RTL: fills from right to left */
-  transition: clip-path .28s var(--ease);
+  transition: clip-path .32s var(--ease), opacity .2s;
 }
 .dial-word[aria-current="page"] .w-in { clip-path: inset(0 0 0 0); }
-.dial-word:hover .w-out { -webkit-text-stroke-color: var(--accent); }
-.dial-word[aria-current="page"]::after {
-  content: ""; position: absolute; inset-inline: 0; bottom: .02em; height: .07em; background: var(--accent);
+/* Hover/focus preview: a ghost fill, which says "this can be filled" */
+.dial-word:not([aria-current]):is(:hover, :focus-visible) .w-in { clip-path: inset(0 0 0 0); opacity: .16; }
+.dial-word:not([aria-current]):is(:hover, :focus-visible) .w-out { -webkit-text-stroke-color: var(--accent); }
+/* Room count: a small, factual number, set in the text face */
+.w-count {
+  font: 600 max(.8rem, .15em)/1 var(--f-text); color: var(--accent); letter-spacing: 0;
+  margin-inline-start: .08em; margin-top: .2em; font-variant-numeric: tabular-nums; transition: color .2s;
 }
-.dial-answers { margin-top: clamp(14px, 2vw, 22px); max-width: 60ch; font-size: var(--s1); line-height: 1.5; color: var(--text); }
+.dial-word:not([aria-current]) .w-count { color: var(--muted); }
+.dial-word:not([aria-current]):hover .w-count { color: var(--accent); }
+.w-peek { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* The rail: one hairline with three stops, and a thumb that slides to the active room */
+.dial-rail { position: absolute; height: 1px; background: var(--hairline); left: var(--rail-l, 0); width: var(--rail-w, 100%); top: var(--rail-y, 100%); pointer-events: none; }
+.dial-tick { position: absolute; top: -4px; width: 1px; height: 9px; background: var(--muted); opacity: .55; }
+.dial-thumb {
+  position: absolute; left: 0; top: 0; height: max(4px, .06em); width: var(--tw, 0);
+  transform: translate(var(--tx, 0), var(--ty, 0)); background: var(--accent); border-radius: 2px; pointer-events: none;
+  transition: transform .42s var(--ease), width .42s var(--ease), background-color .3s;
+}
+.dial:not(.is-measured) .dial-thumb, .dial:not(.is-measured) .dial-rail { opacity: 0; }
+
+/* Preview pill (desktop): the content of the room, before you go in */
+.dial-pill {
+  position: absolute; top: var(--py, 100%); left: 0; transform: translate(var(--px, 0), 10px);
+  font: 500 var(--s-1)/1.3 var(--f-text); letter-spacing: 0; white-space: nowrap;
+  background: var(--text); color: var(--surface); padding: 8px 14px; border-radius: 999px;
+  opacity: 0; pointer-events: none; transition: opacity .16s, transform .32s var(--ease); z-index: 5;
+}
+.dial-pill.is-on { opacity: 1; transform: translate(var(--px, 0), 16px); }
+
+/* First-entry tour: the fill moves through the three words before settling on the active room */
+.dial.is-touring .dial-word[aria-current]:not(.is-tour) .w-in { clip-path: inset(0 0 0 100%); }
+.dial.is-touring .dial-word.is-tour .w-in { clip-path: inset(0 0 0 0); opacity: 1; }
+.dial.is-touring .dial-word.is-tour .w-count { color: var(--accent); }
+/* A single nudge if no room has been chosen yet */
+.dial.is-nudge .dial-word:not([aria-current]) .w-out { animation: nudge 1.3s var(--ease) both; }
+.dial.is-nudge .dial-word:not([aria-current]) + .dial-word:not([aria-current]) .w-out { animation-delay: .18s; }
+@keyframes nudge { 0%, 100% { -webkit-text-stroke-color: var(--muted); } 45% { -webkit-text-stroke-color: var(--accent); } }
+
+.dial-answers { margin-top: clamp(18px, 2.4vw, 28px); max-width: 60ch; font-size: var(--s1); line-height: 1.5; color: var(--text); }
 .answer-links { display: flex; flex-wrap: wrap; gap: 6px 20px; margin-top: 10px; font-size: var(--s0); }
 .answer-links a { font-weight: 500; text-decoration-color: var(--accent); text-decoration-thickness: 2px; }
 
-/* Mobile: stacked words, flat fill instead of an outline, no horizontal scrolling */
+/* Mobile: a stacked menu. Each word with its count and one line about what is inside. No horizontal scrolling. */
 @media (max-width: 600px) {
   .dial-sentence { font-size: 3.4rem; line-height: .98; display: block; }
   .dial-lead { display: block; margin-bottom: .06em; }
-  .dial-words { display: flex; flex-direction: column; align-items: flex-start; gap: 0; }
-  .dial-word { min-height: 48px; padding-block: .02em .06em; }
+  .dial-words { display: flex; flex-direction: column; align-items: stretch; gap: 0; padding-bottom: 0; }
+  .dial-word { min-height: 56px; align-items: center; gap: 10px; padding-block: .04em .1em; border-block-end: 1px solid var(--hairline); }
   .dial-word .w-out { -webkit-text-stroke: 0; color: color-mix(in srgb, var(--muted) 55%, var(--surface)); }
+  .w-count { align-self: flex-start; margin-top: .35em; font-size: .78rem; }
+  .w-peek {
+    position: static !important; width: auto; height: auto; overflow: visible; clip: auto; white-space: normal;
+    font: 400 .84rem/1.3 var(--f-text); color: var(--muted); letter-spacing: 0; max-width: 13em; margin-inline-start: auto; text-align: start;
+  }
+  .dial-word[aria-current] .w-peek { color: var(--text); }
+  .dial-rail, .dial-pill { display: none; }
   .dial-answers { font-size: 1.08rem; }
 }
+@media (prefers-reduced-motion: reduce) { .dial-thumb, .dial-word .w-in, .dial-pill { transition: none; } }
 
 /* ── Rooms ── */
 .room { padding-block: 8px 96px; }
@@ -506,3 +551,9 @@ body:not(.dial-compact) .bar-rooms { display: none; }
 .skip-demo { position: absolute; inset-inline-start: -9999px; }
 .skip-demo:focus { position: static; display: inline-block; margin-bottom: 10px; font-weight: 500; }
 .pg-cta:focus { outline: none; }
+
+/* Lock icon for admin login: discreet, in the footer */
+.admin-lock { width: 36px; height: 36px; display: inline-grid; place-items: center; border: 0; border-radius: 999px; background: transparent; color: var(--muted); cursor: pointer; opacity: .55; padding: 0; }
+.admin-lock svg { width: 18px; height: 18px; }
+.admin-lock:hover, .admin-lock:focus-visible { opacity: 1; color: var(--text); }
+.phone-sub { color: var(--text); opacity: .85; font-size: var(--s-1); line-height: 1.4; grid-column: 1; }

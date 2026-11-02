@@ -39,6 +39,10 @@ function slowNetwork() {
 
 const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+/** Escapes text for HTML. The manifest can be edited by hand or from the editor, so it is never trusted as HTML */
+export const esc = (t) => String(t ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+export const categoryLabel = (c) => CATEGORY_LABEL[c] || c || '';
+
 /**
  * @param {HTMLElement} root  element containing .wall-river
  * @param {AiVideo[]} list
@@ -58,7 +62,8 @@ export function initVideoWall(root, list, cfg) {
   const weakDevice = (navigator.hardwareConcurrency || 8) <= 4;
   const setCap = () => { cap = capQuery.matches ? (weakDevice ? 2 : 3) : 6; reconcile(); };
 
-  // Build the cards
+  // Build the cards (also when the list is replaced, e.g. after editing)
+  function buildCards(list) {
   const frag = document.createDocumentFragment();
   for (const v of list) {
     const url = videoUrl(v, cfg);
@@ -66,20 +71,23 @@ export function initVideoWall(root, list, cfg) {
     const card = document.createElement('figure');
     card.className = 'phone' + (url ? '' : ' phone--pending');
     card.dataset.category = v.category;
-    const cat = CATEGORY_LABEL[v.category] || v.category;
+    const cat = esc(categoryLabel(v.category));
+    const title = esc(v.title), tool = esc(v.tool);
+    const sub = v.subtitle ? `<span class="phone-sub">${esc(v.subtitle)}</span>` : '';
     if (url) {
       card.innerHTML = `
         <div class="phone-screen">
           <canvas class="phone-blur" aria-hidden="true"></canvas>
-          ${poster ? `<img class="phone-poster" alt="" decoding="async" loading="lazy" fetchpriority="low" src="${poster}">` : ''}
-          <video muted loop playsinline preload="none" disablepictureinpicture disableremoteplayback aria-label="${v.title}"></video>
+          ${poster ? `<img class="phone-poster" alt="" decoding="async" loading="lazy" fetchpriority="low" src="${esc(poster)}">` : ''}
+          <video muted loop playsinline preload="none" disablepictureinpicture disableremoteplayback aria-label="${title}"></video>
           <div class="phone-shimmer" aria-hidden="true"></div>
-          <button class="phone-tap" type="button" hidden aria-label="נגנו את ${v.title}">${ICON.play}</button>
+          <button class="phone-tap" type="button" hidden aria-label="נגנו את ${title}">${ICON.play}</button>
           <p class="phone-error" hidden>הסרטון לא נטען. <button type="button" class="link-btn phone-retry">נסו שוב</button></p>
         </div>
         <figcaption>
-          <span class="phone-badge">${v.tool}</span>
-          <span class="phone-title">${v.title}</span>
+          <span class="phone-badge">${tool}</span>
+          <span class="phone-title">${title}</span>
+          ${sub}
           <span class="phone-cat">${cat}</span>
           <span class="phone-ctrls">
             <button class="icon-btn phone-mute" type="button" aria-pressed="false" aria-label="הפעלת קול">${ICON.mute}</button>
@@ -95,11 +103,12 @@ export function initVideoWall(root, list, cfg) {
     } else {
       card.innerHTML = `
         <div class="phone-screen phone-screen--pending" aria-hidden="true"><span class="pending-glow"></span></div>
-        <figcaption><span class="phone-title">${v.title}</span><span class="phone-cat">${cat}, בהכנה</span></figcaption>`;
+        <figcaption><span class="phone-title">${title}</span>${sub}<span class="phone-cat">${cat}${cat ? ', ' : ''}בהכנה</span></figcaption>`;
     }
     frag.appendChild(card);
   }
   river.appendChild(frag);
+  }
 
   // ── Playback controller ────────────────────────────────────────────────
   function eligible(s) {
@@ -158,9 +167,9 @@ export function initVideoWall(root, list, cfg) {
   }, { root: null, threshold: [0, 0.6, 1] });
   // root: null (viewport). The horizontal river is clipped by overflow, so IO measures intersection
   // against the viewport *after* that clipping. This works the same in RTL and LTR, with no scrollLeft math.
-  for (const card of cards.keys()) io.observe(card);
-
   // ── Card events ───────────────────────────────────────────────────────
+  function bindCards() {
+  for (const card of cards.keys()) io.observe(card);
   for (const [card, s] of cards) {
     const v = s.video;
     let waitTimer;
@@ -205,6 +214,7 @@ export function initVideoWall(root, list, cfg) {
       reconcile();
     });
     card.querySelector('.phone-full').addEventListener('click', () => openLightbox(card, s));
+  }
   }
 
   function setMuted(card, muted) {
@@ -256,9 +266,25 @@ export function initVideoWall(root, list, cfg) {
   window.addEventListener('pageshow', (e) => { if (e.persisted) reconcile(); });
   capQuery.addEventListener('change', setCap);
   if (navigator.connection && navigator.connection.addEventListener) navigator.connection.addEventListener('change', reconcile);
+  let currentList = list;
+  buildCards(list);
+  bindCards();
   setCap();
 
   return {
+    /** Replaces the list of videos and rebuilds the wall (after editing / loading a manifest from the cloud) */
+    setList(next) {
+      for (const [card, s] of cards) { stop(card, s); if (s.video.src) { s.video.removeAttribute('src'); s.video.load(); } }
+      io.disconnect();
+      cards.clear();
+      unmutedCard = null;
+      river.innerHTML = '';
+      currentList = next;
+      buildCards(next);
+      bindCards();
+      reconcile();
+    },
+    getList: () => currentList,
     enter() { active = true; reconcile(); },
     leave() {
       active = false;

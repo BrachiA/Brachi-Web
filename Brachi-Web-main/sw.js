@@ -1,6 +1,6 @@
 // Service Worker: keeps the shell, CV and articles available offline.
 // Change VERSION on every deploy that changes assets. Old caches are deleted on activate.
-const VERSION = 'v2.0.1';
+const VERSION = 'v2.1.0';
 const CORE = `bp-core-${VERSION}`;
 const RUNTIME = `bp-runtime-${VERSION}`;
 const RUNTIME_MAX = 40;
@@ -11,7 +11,7 @@ const PRECACHE = [
   '/assets/css/site.css', '/assets/css/fonts.css', '/assets/css/article.css',
   '/assets/js/main.js', '/assets/js/router.js', '/assets/js/offline.js', '/assets/js/cv.js',
   '/assets/js/diagrams.js', '/assets/js/playground.js', '/assets/js/video-wall.js',
-  '/assets/js/media-manifest.js', '/assets/js/blurhash.js', '/assets/js/article.js',
+  '/assets/js/media-manifest.js', '/assets/js/video-store.js', '/assets/js/dial.js', '/assets/js/blurhash.js', '/assets/js/article.js',
   '/assets/fonts/karantina-700-hebrew.woff2', '/assets/fonts/ibm-plex-sans-hebrew-400-hebrew.woff2',
   '/assets/fonts/ibm-plex-sans-hebrew-600-hebrew.woff2', '/assets/img/favicon.svg',
 ];
@@ -52,6 +52,8 @@ self.addEventListener('fetch', (event) => {
   // Video and media are never cached (206 partial responses, size)
   if (req.destination === 'video' || req.destination === 'audio' || req.headers.has('range')) return;
   if (url.origin !== location.origin) return;
+  // The video list must always be fresh (it changes from the editor), so it goes straight to the network
+  if (url.pathname.endsWith('/videos-manifest.json')) return;
 
   // Navigation: network first (3s), then cache, then 404
   if (req.mode === 'navigate') {
