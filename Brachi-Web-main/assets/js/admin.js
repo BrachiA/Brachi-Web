@@ -3,11 +3,11 @@
 //
 // A word on security, plainly:
 // This is a static site with no server. The password lock is a lock on the editing interface, but anyone
-// with DevTools can get past it. The real line of defence is write permission on the Google Cloud Storage bucket:
-// publishing to everyone requires an OAuth access token that only the owner has. It is not stored in code
-// or in localStorage (sessionStorage only, for the life of the tab). Someone who gets past the lock edits only their own browser.
+// with DevTools can get past it. The real line of defence is write permission on the Cloudflare R2 bucket:
+// publishing to everyone requires an R2 Access Key ID + Secret Access Key that only the owner has. They are not stored
+// in code or in localStorage (sessionStorage only, for the life of the tab). Someone who gets past the lock edits only their own browser.
 
-import { loadPublicList, sanitizeList, sanitizeSlot, safeUrl, gcsManifestUrl } from './video-store.js';
+import { loadPublicList, sanitizeList, sanitizeSlot, safeUrl, r2ManifestUrl, joinUrl } from './video-store.js';
 import { mediaConfig, CATEGORY_LABEL } from './media-manifest.js';
 import { esc } from './video-wall.js';
 
@@ -16,8 +16,8 @@ const K_CRED = 'bp-admin-cred';                     // { v, salt, hash, iter }
 const K_FAILS = 'bp-admin-fails';                   // { n, until }
 const K_SESSION = 'bp-admin-session';               // sessionStorage: expiry time
 const K_DRAFT = 'bp-admin-draft';                   // the edited list (without local files)
-const K_CLOUD = 'bp-admin-cloud';                   // { bucket, prefix }; no token
-const K_TOKEN = 'bp-admin-token';                   // sessionStorage only
+const K_CLOUD = 'bp-admin-r2';                      // { accountId, bucket, publicBase, prefix }; no keys
+const K_KEYS = 'bp-admin-r2-keys';                  // sessionStorage only: { accessKeyId, secret }
 const ITER = 210000;
 const IDLE_MS = 30 * 60 * 1000;
 const SESSION_MS = IDLE_MS;   // sliding: each action renews it, so a reload after 30 idle minutes asks for the password again
@@ -203,66 +203,69 @@ export function makePoster(file, width = 360) {
   });
 }
 
-// ── GCS upload (JSON API, multipart) ──────────────────────────────────────
-const RESUMABLE_MIN = 8 * 1024 * 1024;
-function gcsError(status, bucket) {
-  if (status === 401) return new Error('הטוקן לא תקף או שפג תוקפו (טוקן תקף כשעה). הפיקי טוקן חדש.');
-  if (status === 403) return new Error('לחשבון של הטוקן אין הרשאת כתיבה לדלי הזה.');
-  if (status === 404) return new Error(`הדלי "${bucket}" לא נמצא.`);
+// ── Cloudflare R2 upload (S3 API, AWS Signature V4, computed in the browser) ──
+// R2 is S3-compatible: PUT https://<ACCOUNT_ID>.r2.cloudflarestorage.com/<bucket>/<key>, region "auto".
+// The payload is not hashed (UNSIGNED-PAYLOAD), so a large video is not read into memory just for a SHA-256.
+const enc = new TextEncoder();
+const hex = (buf) => [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
+async function hmac(key, msg) {
+  const k = await crypto.subtle.importKey('raw', typeof key === 'string' ? enc.encode(key) : key, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  return crypto.subtle.sign('HMAC', k, enc.encode(msg));
+}
+const sha256hex = async (str) => hex(await crypto.subtle.digest('SHA-256', enc.encode(str)));
+/** RFC 3986 encoding for one path segment, as S3 requires (also ! ' ( ) *) */
+const s3seg = (seg) => encodeURIComponent(seg).replace(/[!'()*]/g, (c) => '%' + c.charCodeAt(0).toString(16).toUpperCase());
+
+export async function r2SignPut({ accountId, bucket, key, accessKeyId, secret, now = new Date() }) {
+  const host = `${accountId}.r2.cloudflarestorage.com`;
+  const path = `/${s3seg(bucket)}/${key.split('/').map(s3seg).join('/')}`;
+  const amzDate = now.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');   // 20261102T120000Z
+  const day = amzDate.slice(0, 8);
+  const scope = `${day}/auto/s3/aws4_request`;
+  const payload = 'UNSIGNED-PAYLOAD';
+  const signedHeaders = 'host;x-amz-content-sha256;x-amz-date';
+  const canonical = ['PUT', path, '', `host:${host}\nx-amz-content-sha256:${payload}\nx-amz-date:${amzDate}\n`, signedHeaders, payload].join('\n');
+  const toSign = ['AWS4-HMAC-SHA256', amzDate, scope, await sha256hex(canonical)].join('\n');
+  let k = await hmac('AWS4' + secret, day);
+  k = await hmac(k, 'auto'); k = await hmac(k, 's3'); k = await hmac(k, 'aws4_request');
+  const signature = hex(await hmac(k, toSign));
+  return {
+    url: `https://${host}${path}`,
+    headers: {
+      'x-amz-date': amzDate,
+      'x-amz-content-sha256': payload,
+      Authorization: `AWS4-HMAC-SHA256 Credential=${accessKeyId}/${scope}, SignedHeaders=${signedHeaders}, Signature=${signature}`,
+    },
+  };
+}
+
+function r2Error(status, bucket) {
+  if (status === 401 || status === 403) return new Error('R2 דחה את המפתחות: בדקי את ה-Access Key ID וה-Secret, ושלמפתח יש הרשאת Object Read & Write לדלי הזה.');
+  if (status === 404) return new Error(`הדלי "${bucket}" לא נמצא בחשבון הזה. בדקי את שם הדלי ואת ה-Account ID.`);
   return new Error(`ההעלאה נכשלה (${status}).`);
 }
-const BLOCKED = 'הדפדפן חסם את הבקשה. בדרך כלל זה אומר שלדלי לא הוגדר CORS (ההוראות בהגדרות הענן).';
-const publicUrl = (bucket, name) => `https://storage.googleapis.com/${encodeURIComponent(bucket)}/${name.split('/').map(encodeURIComponent).join('/')}`;
+const BLOCKED = 'הדפדפן חסם את הבקשה. בדרך כלל זה אומר שלדלי לא הוגדרה מדיניות CORS (ההוראות בהגדרות הענן).';
 
-/** Resumable upload: opens a session, then sends the file in one PUT (XHR, for progress). Google recommends it for large files. */
-async function gcsResumable({ bucket, token, name, blob, contentType, cacheControl, onProgress }) {
-  let init;
-  try {
-    init = await fetch(`https://storage.googleapis.com/upload/storage/v1/b/${encodeURIComponent(bucket)}/o?uploadType=resumable`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json; charset=UTF-8', 'X-Upload-Content-Type': contentType },
-      body: JSON.stringify({ name, contentType, cacheControl }),
-    });
-  } catch { throw new Error(BLOCKED); }
-  if (!init.ok) throw gcsError(init.status, bucket);
-  const session = init.headers.get('Location');
-  if (!session) throw new Error('הדלי לא החזיר כתובת העלאה. צריך להוסיף "Location" ל-responseHeader ב-CORS.');
+/** Uploads one file to R2 (XHR, for progress) and returns its public address */
+export async function r2Upload({ cfg, keys, key, blob, contentType, cacheControl, onProgress }) {
+  const { url, headers } = await r2SignPut({ accountId: cfg.accountId, bucket: cfg.bucket, key, accessKeyId: keys.accessKeyId, secret: keys.secret });
   await new Promise((resolve, reject) => {
     const x = new XMLHttpRequest();
-    x.open('PUT', session);
+    x.open('PUT', url);
+    for (const [h, v] of Object.entries(headers)) x.setRequestHeader(h, v);
     x.setRequestHeader('Content-Type', contentType);
+    if (cacheControl) x.setRequestHeader('Cache-Control', cacheControl);
     x.upload.onprogress = (e) => { if (e.lengthComputable && onProgress) onProgress(e.loaded / e.total); };
-    x.onload = () => (x.status >= 200 && x.status < 300 ? resolve() : reject(gcsError(x.status, bucket)));
-    x.onerror = () => reject(new Error('ההעלאה נקטעה. בדקי את החיבור ונסי שוב.'));
+    x.onload = () => (x.status >= 200 && x.status < 300 ? resolve() : reject(r2Error(x.status, cfg.bucket)));
+    x.onerror = () => reject(new Error(BLOCKED));
     x.send(blob);
   });
-  return publicUrl(bucket, name);
+  return joinUrl(cfg.publicBase, key);
 }
 
-export async function gcsUpload({ bucket, token, name, blob, contentType, cacheControl, onProgress }) {
-  if (blob.size >= RESUMABLE_MIN) return gcsResumable({ bucket, token, name, blob, contentType, cacheControl, onProgress });
-  const boundary = 'bp' + crypto.getRandomValues(new Uint32Array(2)).join('');
-  const meta = JSON.stringify({ name, contentType, cacheControl });
-  const body = new Blob([
-    `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${meta}\r\n`,
-    `--${boundary}\r\nContent-Type: ${contentType}\r\n\r\n`, blob, `\r\n--${boundary}--`,
-  ]);
-  let res;
-  try {
-    res = await fetch(`https://storage.googleapis.com/upload/storage/v1/b/${encodeURIComponent(bucket)}/o?uploadType=multipart`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': `multipart/related; boundary=${boundary}` },
-      body,
-    });
-  } catch {
-    throw new Error('הדפדפן חסם את הבקשה. בדרך כלל זה אומר שלדלי לא הוגדר CORS (ההוראות למטה).');
-  }
-  if (res.status === 401) throw new Error('הטוקן לא תקף או שפג תוקפו (טוקן תקף כשעה). הפיקי טוקן חדש.');
-  if (res.status === 403) throw new Error('לחשבון של הטוקן אין הרשאת כתיבה לדלי הזה.');
-  if (res.status === 404) throw new Error(`הדלי "${bucket}" לא נמצא.`);
-  if (!res.ok) throw new Error(`ההעלאה נכשלה (${res.status}).`);
-  return `https://storage.googleapis.com/${encodeURIComponent(bucket)}/${name.split('/').map(encodeURIComponent).join('/')}`;
-}
+const readCfg = () => ls.get(K_CLOUD, { accountId: '', bucket: mediaConfig.r2Bucket || '', publicBase: mediaConfig.r2PublicBase || '', prefix: mediaConfig.r2Prefix || '' });
+const readKeys = () => { try { return JSON.parse(ss.get(K_KEYS) || 'null'); } catch { return null; } };
+const hasKeys = () => { const k = readKeys(); const c = readCfg(); return !!(k && k.accessKeyId && k.secret && c.accountId && c.bucket && c.publicBase); };
 
 // ═══ The editor ═════════════════════════════════════════════════════════
 let state = null; // { draft, pending: Map, wallP, publicList, root, editorEl, bar, idleT }
@@ -348,7 +351,7 @@ function focusEditor() {
 }
 
 function beforeUnload(e) {
-  if (state && state.pending.size) { e.preventDefault(); e.returnValue = ''; }
+  if (state && [...state.pending.values()].some((p) => !p.exported)) { e.preventDefault(); e.returnValue = ''; }
 }
 
 function bindIdle() {
@@ -376,7 +379,7 @@ export function logout(msg) {
   if (document.body.dataset.room === 'ai-video' && wall.enter) wall.enter();
   document.body.classList.remove('is-admin');
   ss.del(K_SESSION);
-  ss.del(K_TOKEN);
+  ss.del(K_KEYS);
   state = null;
   const lock = document.querySelector('[data-admin-lock]');
   if (lock) lock.focus();
@@ -401,7 +404,7 @@ function buildBar() {
   bar.innerHTML = `
     <p class="adm-status"><b>מצב עריכה:</b> <span data-count></span></p>
     <div class="adm-bar-actions">
-      <button type="button" class="btn btn-accent" data-publish>שמור ופרסם לענן</button>
+      <button type="button" class="btn btn-accent" data-publish>שמור ופרסם ל-R2</button>
       <button type="button" class="btn btn-line" data-cloud>הגדרות ענן</button>
       <button type="button" class="btn btn-line" data-download>הורדת videos-manifest.json</button>
       <button type="button" class="btn btn-line" data-pw>החלפת סיסמת מנהל</button>
@@ -410,7 +413,7 @@ function buildBar() {
   document.body.appendChild(bar);
   state.bar = bar;
   bar.querySelector('[data-logout]').addEventListener('click', () => {
-    if (state.pending.size && !confirm('יש סרטונים מקומיים שעוד לא פורסמו לענן. הם יאבדו ביציאה. לצאת בכל זאת?')) return;
+    if ([...state.pending.values()].some((p) => !p.exported) && !confirm('יש סרטונים מקומיים שעוד לא פורסמו לענן. הם יאבדו ביציאה. לצאת בכל זאת?')) return;
     logout('יצאת ממצב עריכה. האתר מוצג כמו שמבקרים רואים אותו.');
   });
   bar.querySelector('[data-pw]').addEventListener('click', async () => {
@@ -434,9 +437,18 @@ function buildBar() {
 
 function updateBar() {
   if (!state) return;
-  const n = state.draft.length, p = state.pending.size;
-  const local = p === 1 ? 'סרטון מקומי אחד ממתין לפרסום' : `${p} סרטונים מקומיים ממתינים לפרסום`;
-  state.bar.querySelector('[data-count]').textContent = `${n} משבצות` + (p ? `, ${local}` : state.dirty ? ', יש שינויים שלא פורסמו' : '');
+  // Without keys the primary action is downloading the list for a manual upload in the R2 dashboard
+  const keyed = hasKeys();
+  state.bar.querySelector('[data-publish]').hidden = !keyed;
+  state.bar.querySelector('[data-download]').className = 'btn ' + (keyed ? 'btn-line' : 'btn-accent');
+  const n = state.draft.length;
+  const all = [...state.pending.values()];
+  const p = all.filter((x) => !x.exported).length, ex = all.length - p;
+  const parts = [`${n} משבצות`];
+  if (p) parts.push(p === 1 ? 'סרטון מקומי אחד ממתין לפרסום' : `${p} סרטונים מקומיים ממתינים לפרסום`);
+  if (ex) parts.push(ex === 1 ? 'סרטון אחד ממתין להעלאה ידנית ל-R2' : `${ex} סרטונים ממתינים להעלאה ידנית ל-R2`);
+  if (!p && !ex && state.dirty) parts.push('יש שינויים שלא פורסמו');
+  state.bar.querySelector('[data-count]').textContent = parts.join(', ');
 }
 
 function saveDraft() {
@@ -478,7 +490,7 @@ function mediaHtml(slot) {
 function slotCard(slot, i) {
   const n = i + 1;
   const p = state.pending.get(slot.id);
-  const status = p ? 'קובץ מקומי, ממתין לפרסום' : slot.src ? 'מפורסם' : 'ריק';
+  const status = p ? (p.exported ? 'ממתין להעלאה ידנית ל-R2' : 'קובץ מקומי, ממתין לפרסום') : slot.src ? 'מפורסם' : 'ריק';
   const card = document.createElement('figure');
   card.className = 'phone ed-card' + (p ? ' is-local' : '');
   card.setAttribute('role', 'listitem');
@@ -505,7 +517,7 @@ function slotCard(slot, i) {
       <span class="phone-sub ed-field" data-k="subtitle" data-ph="תיאור קצר (לא חובה)">${esc(slot.subtitle)}</span>
       <span class="ed-chips ed-cats" role="group" aria-label="קטגוריה, משבצת #${n}">${Object.entries(CATEGORY_LABEL).map(([k, l]) => `<button type="button" class="ed-chip" data-cat="${k}" aria-pressed="${slot.category === k}">${esc(l)}</button>`).join('')}</span>
       <label class="ed-src">מקור הווידאו
-        <input type="url" dir="ltr" data-k="src" value="${esc(p ? '' : slot.src)}" placeholder="${p ? esc(p.file.name) + ' (מקומי)' : 'https://storage.googleapis.com/...'}">
+        <input type="url" dir="ltr" data-k="src" value="${esc(p ? '' : slot.src)}" placeholder="${p ? esc(p.file.name) + ' (מקומי)' : 'https://pub-xxxxxx.r2.dev/videos/...'}">
       </label>
       <span class="ed-state" data-state="${p ? 'local' : slot.src ? 'live' : 'empty'}">${status}</span>
     </figcaption>`;
@@ -655,61 +667,135 @@ function manifestJson(slots) {
   return JSON.stringify({ version: 1, updated: new Date().toISOString(), slots }, null, 2);
 }
 
-function downloadManifest() {
-  if (state.pending.size) toast('שימי לב: סרטונים מקומיים לא נכללים בקובץ. כדי לכלול אותם צריך לפרסם לענן.');
-  const slots = state.draft.map((s) => (state.pending.has(s.id) ? { ...s, src: '', poster: '' } : s));
+const keyName = (name) => name.replace(/[\\/]/g, '-');       // the name of the file, exactly as it will be uploaded in the R2 dashboard
+function saveBlob(blob, filename) {
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([manifestJson(slots)], { type: 'application/json' }));
-  a.download = 'videos-manifest.json';
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
   document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
 }
 
-const CORS_JSON = '[{"origin":["https://brachi-web.vercel.app"],"method":["GET","POST","PUT"],"responseHeader":["Content-Type","Authorization","Location","X-Upload-Content-Type"],"maxAgeSeconds":3600}]';
+/**
+ * No keys? Download videos-manifest.json with the R2 addresses each file *will* have, plus the generated posters.
+ * You then upload the videos, the posters and the manifest yourself in the R2 dashboard, under the exact names shown.
+ */
+async function downloadManifest() {
+  const cfg = readCfg();
+  const local = state.draft.filter((s) => state.pending.has(s.id));
+  if (local.length && !cfg.publicBase) {
+    toast('כדי לחשב את הכתובות של הסרטונים צריך קודם כתובת בסיס ציבורית של R2.');
+    cloudDrawer();
+    return;
+  }
+  const files = [];
+  for (const slot of local) {
+    const p = state.pending.get(slot.id);
+    const vKey = `${cfg.prefix}videos/${keyName(p.file.name)}`;
+    slot.src = joinUrl(cfg.publicBase, vKey);
+    files.push({ what: 'סרטון', key: vKey, local: p.file.name });
+    if (p.posterBlob) {
+      const pKey = `${cfg.prefix}posters/${slot.id}.webp`;
+      slot.poster = joinUrl(cfg.publicBase, pKey);
+      files.push({ what: 'תמונה מקדימה', key: pKey, local: `${slot.id}.webp`, blob: p.posterBlob });
+    } else slot.poster = '';
+    p.exported = true;
+  }
+  saveDraft();
+  saveBlob(new Blob([manifestJson(state.draft)], { type: 'application/json' }), 'videos-manifest.json');
+  for (const f of files.filter((x) => x.blob)) { await new Promise((r) => setTimeout(r, 350)); saveBlob(f.blob, f.local); }
+  renderEditor();
+  const d = dialog(`
+    <div class="adm-form">
+      <h2>העלאה ידנית ל-R2</h2>
+      <p class="adm-note">הורדו <b>videos-manifest.json</b>${files.some((x) => x.blob) ? ' והתמונות המקדימות' : ''}. בלוח הבקרה של Cloudflare, בדלי <b dir="ltr">${esc(cfg.bucket || 'brachi2026')}</b>, העלי כל קובץ לנתיב שלו:</p>
+      <ul class="adm-files">
+        ${files.map((f) => `<li><code dir="ltr"><bdi>${esc(f.key)}</bdi></code><span>${f.what}: <bdi dir="ltr">${esc(f.local)}</bdi></span></li>`).join('')}
+        <li><code dir="ltr"><bdi>${esc(cfg.prefix)}videos-manifest.json</bdi></code><span>רשימת המשבצות</span></li>
+      </ul>
+      <p class="adm-note">שם הקובץ בדלי חייב להיות בדיוק כמו ברשימה, כי הכתובות בקובץ מחושבות ממנו. אחרי ההעלאה המבקרים יראו את הסרטונים בטעינה הבאה${mediaConfig.r2PublicBase ? '' : ', אחרי שכתובת הבסיס תיכתב פעם אחת בקוד (media-manifest.js)'}.</p>
+      <div class="adm-actions"><button type="button" class="btn btn-ink" data-close>הבנתי</button></div>
+    </div>`, { label: 'העלאה ידנית ל-R2' });
+  d.querySelector('[data-close]').addEventListener('click', () => d.close());
+  d.showModal();
+  d.querySelector('[data-close]').focus();
+}
+
+const CORS_JSON = `[
+  {
+    "AllowedOrigins": ["https://brachi-web.vercel.app"],
+    "AllowedMethods": ["GET", "PUT"],
+    "AllowedHeaders": ["authorization", "content-type", "cache-control", "x-amz-date", "x-amz-content-sha256"],
+    "ExposeHeaders": ["ETag"],
+    "MaxAgeSeconds": 3600
+  }
+]`;
 
 function cloudDrawer() {
-  const cfg = ls.get(K_CLOUD, { bucket: mediaConfig.gcsBucket || '', prefix: mediaConfig.gcsPrefix || 'brachi-web/' });
+  const cfg = readCfg();
   const d = dialog(`
     <form method="dialog" class="adm-form adm-drawer-in" novalidate>
-      <h2>הגדרות ענן: Google Cloud Storage</h2>
-      <label>שם הדלי (Bucket)<input name="bucket" dir="ltr" required pattern="[a-z0-9][a-z0-9._-]{1,61}[a-z0-9]" value="${esc(cfg.bucket)}" placeholder="brachi-videos"></label>
-      <label>תיקייה בתוך הדלי<input name="prefix" dir="ltr" value="${esc(cfg.prefix)}" placeholder="brachi-web/"></label>
-      <label>Access token (נשמר רק בלשונית הזו, לא בקוד ולא בדפדפן אחרי סגירה)
-        <input name="token" type="password" dir="ltr" autocomplete="off" placeholder="ya29...."></label>
+      <h2>הגדרות ענן: Cloudflare R2</h2>
+      <div class="adm-grid">
+        <label>שם הדלי (Bucket)<input name="bucket" dir="ltr" required value="${esc(cfg.bucket || 'brachi2026')}" placeholder="brachi2026"></label>
+        <label>כתובת בסיס ציבורית<input name="publicBase" dir="ltr" type="url" required value="${esc(cfg.publicBase)}" placeholder="https://pub-xxxxxx.r2.dev"></label>
+        <label>Account ID (מזהה החשבון, לא סודי)<input name="accountId" dir="ltr" value="${esc(cfg.accountId)}" placeholder="32 תווים, מופיע בלוח הבקרה של R2"></label>
+        <label>תיקייה בתוך הדלי (לא חובה)<input name="prefix" dir="ltr" value="${esc(cfg.prefix)}" placeholder="ריק = שורש הדלי"></label>
+      </div>
+      <fieldset class="adm-keys">
+        <legend>מפתחות להעלאה ישירה (לא חובה)</legend>
+        <p class="adm-note">בלי מפתחות: גוררים סרטונים למשבצות, לוחצים "הורדת videos-manifest.json" ומעלים את הקבצים בלוח הבקרה של R2. עם מפתחות: כפתור אחד מעלה הכול.</p>
+        <label>Access Key ID<input name="accessKeyId" dir="ltr" autocomplete="off" spellcheck="false"></label>
+        <label>Secret Access Key<input name="secret" type="password" dir="ltr" autocomplete="off" spellcheck="false"></label>
+        <p class="adm-note">המפתחות נשמרים רק בלשונית הזו (sessionStorage), לא בקוד ולא אחרי סגירה. מומלץ ליצור ב-R2 טוקן API מוגבל לדלי הזה בלבד, עם הרשאת Object Read &amp; Write.</p>
+      </fieldset>
       <details class="adm-help">
         <summary>איך מגדירים את זה (פעם אחת)</summary>
         <ol>
-          <li>יוצרים דלי ב-Google Cloud Console, ונותנים ל-<code>allUsers</code> הרשאת <code>Storage Object Viewer</code> כדי שהסרטונים יהיו ציבוריים.</li>
-          <li>מגדירים CORS לדלי, כדי שהדפדפן יוכל להעלות אליו:
-            <pre dir="ltr">echo '${esc(CORS_JSON)}' &gt; cors.json
-gcloud storage buckets update gs://BUCKET --cors-file=cors.json</pre></li>
-          <li>בכל פעם שמפרסמים, מפיקים טוקן (תקף כשעה) ומדביקים אותו כאן:
-            <pre dir="ltr">gcloud auth print-access-token</pre></li>
-          <li>כדי שהאתר הציבורי יקרא את הרשימה מהדלי, שם הדלי צריך להופיע פעם אחת ב-<code>assets/js/media-manifest.js</code> (<code>gcsBucket</code>).</li>
-          <li>אם עורכים מכתובת נוספת (דומיין משלך או תצוגה מקדימה של Vercel), מוסיפים אותה לרשימת ה-<code>origin</code> ב-CORS.</li>
+          <li>בדלי, תחת Settings ← Public access, מפעילים את כתובת <code>r2.dev</code> ומעתיקים אותה לשדה "כתובת בסיס ציבורית". (לאתר בפרודקשן Cloudflare ממליצים לחבר דומיין משלך במקום r2.dev, שמוגבל בקצב.)</li>
+          <li>בדלי, תחת Settings ← CORS Policy, מדביקים את המדיניות הזו. היא מאפשרת לאתר לקרוא את רשימת הסרטונים, ולעורך להעלות קבצים:
+            <pre dir="ltr">${esc(CORS_JSON)}</pre></li>
+          <li>מפתחות (לא חובה): R2 ← Manage R2 API Tokens ← Create API token, הרשאת Object Read &amp; Write, מוגבל לדלי <code>brachi2026</code>. ה-Account ID מופיע באותו עמוד.</li>
+          <li>כדי שהאתר הציבורי יקרא את הרשימה מ-R2, כתובת הבסיס צריכה להופיע פעם אחת ב-<code>assets/js/media-manifest.js</code> (<code>r2PublicBase</code>).</li>
         </ol>
       </details>
-      ${cfg.bucket && cfg.bucket !== mediaConfig.gcsBucket ? `<p class="adm-note adm-warn">האתר הציבורי עוד לא קורא מהדלי "${esc(cfg.bucket)}". אחרי הפרסום הראשון צריך לכתוב את שמו ב-media-manifest.js.</p>` : ''}
+      ${cfg.publicBase && cfg.publicBase !== mediaConfig.r2PublicBase ? `<p class="adm-note adm-warn">האתר הציבורי עוד לא קורא מ-<span dir="ltr">${esc(cfg.publicBase)}</span>. שלחי לי את הכתובת, או כתבי אותה ב-r2PublicBase שב-media-manifest.js.</p>` : ''}
       <p class="adm-err" role="alert"></p>
       <div class="adm-actions">
         <button type="submit" class="btn btn-ink">שמירה</button>
+        <button type="button" class="btn btn-line" data-forget>מחיקת המפתחות מהלשונית</button>
         <button type="button" class="btn btn-line" data-cancel>סגירה</button>
       </div>
     </form>`, { cls: 'adm-drawer', label: 'הגדרות ענן' });
-  d.querySelector('input[name=token]').value = ss.get(K_TOKEN) || '';
+  const keys = readKeys() || {};
+  d.querySelector('input[name=accessKeyId]').value = keys.accessKeyId || '';
+  d.querySelector('input[name=secret]').value = keys.secret || '';
   d.querySelector('[data-cancel]').addEventListener('click', () => d.close());
+  d.querySelector('[data-forget]').addEventListener('click', () => {
+    ss.del(K_KEYS);
+    d.querySelector('input[name=accessKeyId]').value = ''; d.querySelector('input[name=secret]').value = '';
+    updateBar(); toast('המפתחות נמחקו מהלשונית.');
+  });
   d.querySelector('form').addEventListener('submit', (e) => {
     e.preventDefault();
     const f = new FormData(e.target);
+    const err = d.querySelector('.adm-err');
     const bucket = String(f.get('bucket') || '').trim().toLowerCase();
-    if (!/^[a-z0-9][a-z0-9._-]{1,61}[a-z0-9]$/.test(bucket)) { d.querySelector('.adm-err').textContent = 'שם דלי לא תקין: אותיות קטנות באנגלית, ספרות, נקודה, מקף.'; return; }
+    if (!/^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$/.test(bucket)) { err.textContent = 'שם דלי לא תקין: אותיות קטנות באנגלית, ספרות ומקף.'; return; }
+    const publicBase = safeUrl(String(f.get('publicBase') || '').trim()).replace(/\/+$/, '');
+    if (!/^https:\/\//.test(publicBase)) { err.textContent = 'כתובת הבסיס צריכה להתחיל ב-https://, למשל https://pub-xxxxxx.r2.dev'; return; }
+    const accountId = String(f.get('accountId') || '').trim().toLowerCase();
+    if (accountId && !/^[a-f0-9]{32}$/.test(accountId)) { err.textContent = 'Account ID הוא 32 תווים (0-9, a-f).'; return; }
     let prefix = String(f.get('prefix') || '').trim().replace(/^\/+/, '');
     if (prefix && !prefix.endsWith('/')) prefix += '/';
-    ls.set(K_CLOUD, { bucket, prefix });
-    const token = String(f.get('token') || '').trim();
-    if (token) ss.set(K_TOKEN, token); else ss.del(K_TOKEN);
+    const accessKeyId = String(f.get('accessKeyId') || '').trim();
+    const secret = String(f.get('secret') || '').trim();
+    if ((accessKeyId || secret) && !(accessKeyId && secret && accountId)) { err.textContent = 'להעלאה ישירה צריך את שלושתם: Account ID, Access Key ID ו-Secret Access Key.'; return; }
+    ls.set(K_CLOUD, { accountId, bucket, publicBase, prefix });
+    if (accessKeyId && secret) ss.set(K_KEYS, JSON.stringify({ accessKeyId, secret })); else ss.del(K_KEYS);
     d.close();
-    toast('ההגדרות נשמרו.');
+    updateBar();
+    toast(hasKeys() ? 'ההגדרות נשמרו. אפשר לפרסם ישירות ל-R2.' : 'ההגדרות נשמרו. בלי מפתחות: גררי סרטונים ולחצי "הורדת videos-manifest.json".');
   });
   d.showModal();
   d.querySelector('input').focus();
@@ -717,20 +803,20 @@ gcloud storage buckets update gs://BUCKET --cors-file=cors.json</pre></li>
 
 async function publish() {
   if (!state || state.publishing) return;
-  const cfg = ls.get(K_CLOUD);
-  const token = ss.get(K_TOKEN);
-  if (!cfg || !cfg.bucket || !token) { toast('קודם צריך להגדיר דלי וטוקן.'); cloudDrawer(); return; }
+  const cfg = readCfg();
+  const keys = readKeys();
+  if (!hasKeys()) { toast('להעלאה ישירה צריך Account ID ומפתחות. בלי מפתחות: "הורדת videos-manifest.json".'); cloudDrawer(); return; }
   const st = state;
   st.publishing = true;
   const pubBtn = st.bar.querySelector('[data-publish]');
   pubBtn.disabled = true;
   const d = dialog(`
     <div class="adm-form">
-      <h2>פרסום לענן</h2>
+      <h2>פרסום ל-R2</h2>
       <ol class="adm-progress" aria-live="polite"></ol>
       <p class="adm-err" role="alert"></p>
       <div class="adm-actions"><button type="button" class="btn btn-ink" data-close disabled>סגירה</button></div>
-    </div>`, { label: 'פרסום לענן' });
+    </div>`, { label: 'פרסום ל-R2' });
   const log = d.querySelector('.adm-progress'), err = d.querySelector('.adm-err'), close = d.querySelector('[data-close]');
   close.addEventListener('click', () => d.close());
   d.addEventListener('cancel', (e) => { if (st.publishing) e.preventDefault(); }); // no closing mid-upload
@@ -744,10 +830,10 @@ async function publish() {
       if (!p) continue;
       const ext = (p.file.name.match(/\.(\w{2,5})$/) || [, 'mp4'])[1].toLowerCase();
       const li = step(`מעלה את "${slot.title}" (${Math.max(1, Math.round(p.file.size / 1048576))}MB)...`);
-      const src = await gcsUpload({ bucket: cfg.bucket, token, name: `${cfg.prefix}videos/${slot.id}-${stamp}.${ext}`, blob: p.file, contentType: p.file.type || 'video/mp4', cacheControl: 'public, max-age=31536000, immutable', onProgress: (f) => { li.dataset.pct = Math.round(f * 100) + '%'; } });
+      const src = await r2Upload({ cfg, keys, key: `${cfg.prefix}videos/${slot.id}-${stamp}.${ext}`, blob: p.file, contentType: p.file.type || 'video/mp4', cacheControl: 'public, max-age=31536000, immutable', onProgress: (f) => { li.dataset.pct = Math.round(f * 100) + '%'; } });
       if (!alive()) return;
       const poster = p.posterBlob
-        ? await gcsUpload({ bucket: cfg.bucket, token, name: `${cfg.prefix}posters/${slot.id}-${stamp}.webp`, blob: p.posterBlob, contentType: 'image/webp', cacheControl: 'public, max-age=31536000, immutable' })
+        ? await r2Upload({ cfg, keys, key: `${cfg.prefix}posters/${slot.id}-${stamp}.webp`, blob: p.posterBlob, contentType: 'image/webp', cacheControl: 'public, max-age=31536000, immutable' })
         : '';                                   // no new poster: do not keep the poster of the previous video
       if (!alive()) return;
       slot.src = src; slot.poster = poster;
@@ -757,10 +843,10 @@ async function publish() {
       st.bump && st.bump();
     }
     const li = step('מפרסם את רשימת המשבצות (videos-manifest.json)...');
-    await gcsUpload({ bucket: cfg.bucket, token, name: `${cfg.prefix}videos-manifest.json`, blob: new Blob([manifestJson(st.draft)], { type: 'application/json' }), contentType: 'application/json', cacheControl: 'no-cache, max-age=0' });
+    await r2Upload({ cfg, keys, key: `${cfg.prefix}videos-manifest.json`, blob: new Blob([manifestJson(st.draft)], { type: 'application/json' }), contentType: 'application/json', cacheControl: 'no-cache, max-age=0' });
     if (!alive()) return;
     li.textContent += ' פורסם.';
-    const live = cfg.bucket === mediaConfig.gcsBucket && (cfg.prefix || '') === (mediaConfig.gcsPrefix || '');
+    const live = cfg.publicBase === mediaConfig.r2PublicBase && (cfg.prefix || '') === (mediaConfig.r2Prefix || '');
     if (live) {
       // Only when the site actually reads from this bucket does the published list become "public"
       st.publicList = st.draft.map((x) => ({ ...x }));
@@ -769,7 +855,7 @@ async function publish() {
     }
     step(live
       ? 'סיום. המבקרים יראו את השינויים בטעינה הבאה של הדף.'
-      : `סיום. הקבצים בדלי, אבל האתר הציבורי עוד לא קורא מהדלי הזה. צריך לכתוב פעם אחת gcsBucket: '${cfg.bucket}' ב-media-manifest.js. הכתובת: ${gcsManifestUrl(cfg.bucket, cfg.prefix)}`);
+      : `סיום. הקבצים ב-R2, אבל האתר הציבורי עוד לא קורא מהכתובת הזו. צריך לכתוב פעם אחת r2PublicBase: '${cfg.publicBase}' ב-media-manifest.js. הרשימה: ${r2ManifestUrl(cfg.publicBase, cfg.prefix)}`);
   } catch (e) {
     err.textContent = e.message || 'הפרסום נכשל.';
   } finally {

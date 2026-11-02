@@ -1,6 +1,6 @@
 // Service Worker: keeps the shell, CV and articles available offline.
 // Change VERSION on every deploy that changes assets. Old caches are deleted on activate.
-const VERSION = 'v2.1.1';
+const VERSION = 'v2.2.0';
 const CORE = `bp-core-${VERSION}`;
 const RUNTIME = `bp-runtime-${VERSION}`;
 const RUNTIME_MAX = 40;

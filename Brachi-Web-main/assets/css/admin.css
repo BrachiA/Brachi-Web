@@ -115,3 +115,17 @@ body.is-admin { padding-bottom: 150px; }
 .adm-stale { width: 100%; font-size: var(--s-1); background: #FFF4DF; color: #7A4A00; padding: 8px 12px; border-radius: 8px; }
 .adm-stale .link-btn { margin-inline-start: 10px; font-weight: 500; color: inherit; }
 .adm-bar [data-publish]:disabled { opacity: .55; cursor: progress; }
+.adm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; }
+@media (max-width: 560px) { .adm-grid { grid-template-columns: 1fr; } }
+.adm-keys { border: 1px solid var(--hairline); border-radius: 10px; padding: 12px 14px 14px; display: grid; gap: 10px; margin: 0; }
+.adm-keys legend { font-weight: 600; padding: 0 6px; }
+.adm-files { margin: 0; padding-inline-start: 1.2em; display: grid; gap: 6px; font-size: .86rem; text-align: left; }
+.adm-files code { font-family: var(--f-code); background: rgb(19 37 43 / .07); padding: 1px 5px; border-radius: 4px; word-break: break-all; }
+.adm-help pre { max-height: 220px; overflow: auto; }
+.adm-bar [hidden] { display: none !important; }
+
+.adm-dialog { max-height: calc(100dvh - 24px); overflow-y: auto; overscroll-behavior: contain; }
+.adm-files { padding-inline-start: 1.2em; text-align: start; }
+.adm-files li { display: grid; gap: 2px; }
+.adm-files li span { color: var(--slate); font-size: .82rem; }
+.adm-files code { justify-self: start; direction: ltr; unicode-bidi: isolate; }

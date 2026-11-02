@@ -1,8 +1,8 @@
 // Where the video list comes from, in priority order:
-//   1. Google Cloud Storage: https://storage.googleapis.com/<bucket>/<prefix>videos-manifest.json (when gcsBucket is set in media-manifest.js)
+//   1. Cloudflare R2: <r2PublicBase>/<r2Prefix>videos-manifest.json (when r2PublicBase is set in media-manifest.js)
 //   2. /videos-manifest.json in the repo
 //   3. The built-in list in media-manifest.js
-// Everything is validated: only http(s) or relative addresses, length limits, and no HTML.
+// Everything is validated: only https or site-relative addresses, length limits, and no HTML.
 import { aiVideos, mediaConfig } from './media-manifest.js';
 
 const MAX_SLOTS = 60;
@@ -45,9 +45,14 @@ export function sanitizeList(list) {
   });
 }
 
-export function gcsManifestUrl(bucket = mediaConfig.gcsBucket, prefix = mediaConfig.gcsPrefix || '') {
-  if (!bucket) return '';
-  return `https://storage.googleapis.com/${encodeURIComponent(bucket)}/${prefix}videos-manifest.json`;
+/** Joins a base address and a key, encoding each path segment (a file name may contain spaces or Hebrew) */
+export function joinUrl(base, key) {
+  return String(base || '').replace(/\/+$/, '') + '/' + String(key).split('/').map(encodeURIComponent).join('/');
+}
+
+export function r2ManifestUrl(base = mediaConfig.r2PublicBase, prefix = mediaConfig.r2Prefix || '') {
+  if (!base) return '';
+  return joinUrl(base, `${prefix}videos-manifest.json`);
 }
 
 async function fetchJson(url, ms = 2500) {
@@ -66,7 +71,7 @@ let cached = null;
 export function loadPublicList() {
   if (!cached) {
     cached = (async () => {
-      const remote = mediaConfig.gcsBucket ? await fetchJson(gcsManifestUrl()) : null;
+      const remote = mediaConfig.r2PublicBase ? await fetchJson(r2ManifestUrl()) : null;
       if (remote) return remote;
       const local = await fetchJson('/videos-manifest.json');
       if (local) return local;
