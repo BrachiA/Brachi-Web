@@ -114,7 +114,7 @@ body.dial-compact .top { border-block-end-color: var(--hairline); }
   .mark { font-size: 1.6rem; }
   .wa span { display: none; }
   .wa { padding: 0 11px; }
-  body.dial-compact .mark-text { display: none; }   /* on the compact bar only the B remains */
+  body.dial-compact .mark { display: none; }
   .bar-rooms a { font-size: 1.45rem; padding-inline: 8px; }
 }
 
@@ -551,7 +551,3 @@ body:not(.dial-compact) .bar-rooms { display: none; }
 
 /* Sections hidden from the editor (site-content.json) */
 [data-hidden-block] { display: none !important; }
-
-/* Logo: a red B (the glyph from IBM Plex Sans 600) next to the name */
-.mark { display: inline-flex; align-items: center; gap: .32em; }
-.mark-b { width: auto; height: .74em; fill: #D7263D; flex: none; display: block; transform: translateY(-.02em); }
