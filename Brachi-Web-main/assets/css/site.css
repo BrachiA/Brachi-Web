@@ -138,13 +138,6 @@ body.dial-compact .top { border-block-end-color: var(--hairline); }
 /* Hover/focus preview: a ghost fill, which says "this can be filled" */
 .dial-word:not([aria-current]):is(:hover, :focus-visible) .w-in { clip-path: inset(0 0 0 0); opacity: .16; }
 .dial-word:not([aria-current]):is(:hover, :focus-visible) .w-out { -webkit-text-stroke-color: var(--accent); }
-/* Room count: a small, factual number, set in the text face */
-.w-count {
-  font: 600 max(.8rem, .15em)/1 var(--f-text); color: var(--accent); letter-spacing: 0;
-  margin-inline-start: .08em; margin-top: .2em; font-variant-numeric: tabular-nums; transition: color .2s;
-}
-.dial-word:not([aria-current]) .w-count { color: var(--muted); }
-.dial-word:not([aria-current]):hover .w-count { color: var(--accent); }
 .w-peek { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 /* The rail: one hairline with three stops, and a thumb that slides to the active room */
@@ -169,7 +162,6 @@ body.dial-compact .top { border-block-end-color: var(--hairline); }
 /* First-entry tour: the fill moves through the three words before settling on the active room */
 .dial.is-touring .dial-word[aria-current]:not(.is-tour) .w-in { clip-path: inset(0 0 0 100%); }
 .dial.is-touring .dial-word.is-tour .w-in { clip-path: inset(0 0 0 0); opacity: 1; }
-.dial.is-touring .dial-word.is-tour .w-count { color: var(--accent); }
 /* A single nudge if no room has been chosen yet */
 .dial.is-nudge .dial-word:not([aria-current]) .w-out { animation: nudge 1.3s var(--ease) both; }
 .dial.is-nudge .dial-word:not([aria-current]) + .dial-word:not([aria-current]) .w-out { animation-delay: .18s; }
@@ -186,7 +178,6 @@ body.dial-compact .top { border-block-end-color: var(--hairline); }
   .dial-words { display: flex; flex-direction: column; align-items: stretch; gap: 0; padding-bottom: 0; }
   .dial-word { min-height: 56px; align-items: center; gap: 10px; padding-block: .04em .1em; border-block-end: 1px solid var(--hairline); }
   .dial-word .w-out { -webkit-text-stroke: 0; color: color-mix(in srgb, var(--muted) 55%, var(--surface)); }
-  .w-count { align-self: flex-start; margin-top: .35em; font-size: .78rem; }
   .w-peek {
     position: static !important; width: auto; height: auto; overflow: visible; clip: auto; white-space: normal;
     font: 400 .84rem/1.3 var(--f-text); color: var(--muted); letter-spacing: 0; max-width: 13em; margin-inline-start: auto; text-align: start;
@@ -557,3 +548,6 @@ body:not(.dial-compact) .bar-rooms { display: none; }
 .admin-lock svg { width: 18px; height: 18px; }
 .admin-lock:hover, .admin-lock:focus-visible { opacity: 1; color: var(--text); }
 .phone-sub { color: var(--text); opacity: .85; font-size: var(--s-1); line-height: 1.4; grid-column: 1; }
+
+/* Sections hidden from the editor (site-content.json) */
+[data-hidden-block] { display: none !important; }

@@ -1,5 +1,9 @@
 import { createRouter } from './router.js';
 import { initDial } from './dial.js';
+import { boot as bootContent } from './site-content.js';
+
+// Text/order changes published from the editor: keys are given before anything else changes the DOM
+bootContent().catch(() => {});
 
 const WA = 'https://wa.me/972547568966';
 const THEME = { web: '#ECEEE9', 'ai-video': '#0E1F24', engineering: '#ECEEE9' };

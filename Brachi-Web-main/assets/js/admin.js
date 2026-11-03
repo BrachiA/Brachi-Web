@@ -10,6 +10,7 @@
 import { loadPublicList, sanitizeList, sanitizeSlot, safeUrl, r2ManifestUrl, joinUrl } from './video-store.js';
 import { mediaConfig, CATEGORY_LABEL } from './media-manifest.js';
 import { esc } from './video-wall.js';
+import { startContentEdit } from './content-edit.js';
 
 const DEFAULT_PASSWORD = 'brachi2026!';           // used only until the first password change
 const K_CRED = 'bp-admin-cred';                     // { v, salt, hash, iter }
@@ -315,7 +316,6 @@ function readDraft() {
 
 async function startEditor(hooks) {
   if (state) return;
-  hooks.go('ai-video');
   const wall = await hooks.getWall();
   const publicList = await loadPublicList();
   if (state) return;
@@ -347,14 +347,21 @@ async function startEditor(hooks) {
   renderEditor();
   bindIdle();
   addEventListener('beforeunload', beforeUnload);
-  focusEditor();
+  // The "אתרים" and "מערכות" rooms: texts, order, hiding
+  const st = state;
+  const content = await startContentEdit({ onChange: () => { if (state === st) updateBar(); } });
+  if (state !== st) { content.stop(); return; }
+  st.content = content;
+  updateBar();
+  toast(document.body.dataset.room === 'ai-video'
+    ? 'מצב עריכה. אפשר לערוך גם את החדרים "אתרים" ו"מערכות": לוחצים על טקסט וכותבים.'
+    : 'מצב עריכה. לוחצים על טקסט וכותבים. מעל כל מקטע יש כפתורים להזזה ולהסתרה.');
 }
 
 function focusEditor() {
   if (!state) return;
   const st = state;
-  st.hooks.go('ai-video');
-  requestAnimationFrame(() => { if (state === st) st.editorEl.scrollIntoView({ block: 'start' }); });
+  if (document.body.dataset.room === 'ai-video') requestAnimationFrame(() => { if (state === st) st.editorEl.scrollIntoView({ block: 'start' }); });
 }
 
 function beforeUnload(e) {
@@ -379,6 +386,7 @@ export function logout(msg) {
   for (const ev of ['pointerdown', 'keydown']) removeEventListener(ev, state.bump);
   clearTimeout(state.idleT);
   removeEventListener('beforeunload', beforeUnload);
+  if (state.content) state.content.stop();
   editorEl.remove();
   bar.remove();
   root.querySelector('.wall-river').hidden = false;
@@ -413,6 +421,7 @@ function buildBar() {
       <button type="button" class="btn btn-accent" data-publish>שמור ופרסם לענן</button>
       <button type="button" class="btn btn-line" data-cloud>הגדרות ענן</button>
       <button type="button" class="btn btn-line" data-download>הורדת videos-manifest.json</button>
+      <button type="button" class="btn btn-line" data-revert hidden>ביטול שינויי העמודים</button>
       <button type="button" class="btn btn-line" data-pw>החלפת סיסמת מנהל</button>
       <button type="button" class="btn btn-ink" data-logout>יציאה ממצב עריכה</button>
     </div>`;
@@ -438,6 +447,9 @@ function buildBar() {
     n.querySelector('[data-discard]').addEventListener('click', () => { state.staleDraft = null; ls.del(K_DRAFT); n.remove(); });
   }
   bar.querySelector('[data-download]').addEventListener('click', downloadManifest);
+  bar.querySelector('[data-revert]').addEventListener('click', () => {
+    if (state.content && confirm('לבטל את כל השינויים בעמודים "אתרים" ו"מערכות" שעוד לא פורסמו?')) state.content.revert();
+  });
   updateBar();
 }
 
@@ -453,7 +465,14 @@ function updateBar() {
   const parts = [`${n} משבצות`];
   if (p) parts.push(p === 1 ? 'סרטון מקומי אחד ממתין לפרסום' : `${p} סרטונים מקומיים ממתינים לפרסום`);
   if (ex) parts.push(ex === 1 ? 'סרטון אחד ממתין להעלאה ידנית ל-R2' : `${ex} סרטונים ממתינים להעלאה ידנית ל-R2`);
-  if (!p && !ex && state.dirty) parts.push('יש שינויים שלא פורסמו');
+  if (!p && !ex && state.dirty) parts.push('יש שינויים בסרטונים שלא פורסמו');
+  if (state.content && state.content.isDirty()) {
+    const c = state.content.summary();
+    const bits = [c.texts && `${c.texts} טקסטים`, c.moved && `${c.moved} רשימות בסדר חדש`, c.hidden && `${c.hidden} מוסתרים`].filter(Boolean);
+    parts.push(`שינויים בעמודים שלא פורסמו${bits.length ? ` (${bits.join(', ')})` : ''}`);
+  }
+  const rv = state.bar.querySelector('[data-revert]');
+  if (rv) rv.hidden = !(state.content && state.content.isDirty());
   state.bar.querySelector('[data-count]').textContent = parts.join(', ');
 }
 
@@ -670,7 +689,8 @@ async function attachFile(slot, file) {
 
 // ── Manifest: download and publish ───────────────────────────────────────
 function manifestJson(slots) {
-  return JSON.stringify({ version: 1, updated: new Date().toISOString(), slots }, null, 2);
+  const siteContent = state && state.content ? state.content.stamp() : '';
+  return JSON.stringify({ version: 1, updated: new Date().toISOString(), ...(siteContent ? { siteContent } : {}), slots }, null, 2);
 }
 
 const keyName = (name) => name.replace(/[\\/]/g, '-');       // the name of the file, exactly as it will be uploaded in the R2 dashboard
@@ -708,6 +728,13 @@ async function downloadManifest() {
     p.exported = true;
   }
   saveDraft();
+  const withContent = !!(state.content && state.content.isDirty());
+  if (withContent) {
+    const at = new Date().toISOString();
+    saveBlob(new Blob([state.content.json(at)], { type: 'application/json' }), 'site-content.json');
+    state.content.markPublished(at);
+    await new Promise((r) => setTimeout(r, 350));
+  }
   saveBlob(new Blob([manifestJson(state.draft)], { type: 'application/json' }), 'videos-manifest.json');
   for (const f of files.filter((x) => x.blob)) { await new Promise((r) => setTimeout(r, 350)); saveBlob(f.blob, f.local); }
   renderEditor();
@@ -718,6 +745,7 @@ async function downloadManifest() {
       <ul class="adm-files">
         ${files.map((f) => `<li><code dir="ltr"><bdi>${esc(f.key)}</bdi></code><span>${f.what}: <bdi dir="ltr">${esc(f.local)}</bdi></span></li>`).join('')}
         <li><code dir="ltr"><bdi>${esc(cfg.prefix)}videos-manifest.json</bdi></code><span>רשימת המשבצות</span></li>
+        ${withContent ? `<li><code dir="ltr"><bdi>${esc(cfg.prefix)}site-content.json</bdi></code><span>שינויי העמודים</span></li>` : ''}
       </ul>
       <p class="adm-note">שם הקובץ בדלי חייב להיות בדיוק כמו ברשימה, כי הכתובות בקובץ מחושבות ממנו. אחרי ההעלאה המבקרים יראו את הסרטונים בטעינה הבאה${mediaConfig.r2PublicBase ? '' : ', אחרי שכתובת הבסיס תיכתב פעם אחת בקוד (media-manifest.js)'}.</p>
       <div class="adm-actions"><button type="button" class="btn btn-ink" data-close>הבנתי</button></div>
@@ -848,6 +876,14 @@ async function publish() {
       dropPending(slot.id);
       saveDraft();
       st.bump && st.bump();
+    }
+    if (st.content && st.content.isDirty()) {
+      const at = new Date().toISOString();
+      const li2 = step('מפרסם את שינויי העמודים (site-content.json)...');
+      await r2Upload({ cfg, keys, key: `${cfg.prefix}site-content.json`, blob: new Blob([st.content.json(at)], { type: 'application/json' }), contentType: 'application/json', cacheControl: 'no-cache, max-age=0' });
+      if (!alive()) return;
+      li2.textContent += ' פורסם.';
+      st.content.markPublished(at);
     }
     const li = step('מפרסם את רשימת המשבצות (videos-manifest.json)...');
     await r2Upload({ cfg, keys, key: `${cfg.prefix}videos-manifest.json`, blob: new Blob([manifestJson(st.draft)], { type: 'application/json' }), contentType: 'application/json', cacheControl: 'no-cache, max-age=0' });
