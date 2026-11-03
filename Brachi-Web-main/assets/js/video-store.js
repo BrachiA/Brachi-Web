@@ -55,6 +55,7 @@ export function r2ManifestUrl(base = mediaConfig.r2PublicBase, prefix = mediaCon
   return joinUrl(base, `${prefix}videos-manifest.json`);
 }
 
+let meta = null;   // the fields of the manifest that loaded, besides the slots (e.g. siteContent)
 async function fetchJson(url, ms = 2500) {
   const ctl = new AbortController();
   const t = setTimeout(() => ctl.abort(), ms);
@@ -62,7 +63,9 @@ async function fetchJson(url, ms = 2500) {
     const res = await fetch(url, { signal: ctl.signal, cache: 'no-store' });
     if (!res.ok) return null;
     const data = await res.json();
-    return sanitizeList(Array.isArray(data) ? data : data && data.slots);
+    const list = sanitizeList(Array.isArray(data) ? data : data && data.slots);
+    if (list && data && !Array.isArray(data)) meta = { siteContent: typeof data.siteContent === 'string' ? data.siteContent.slice(0, 40) : '' };
+    return list;
   } catch { return null; } finally { clearTimeout(t); }
 }
 
@@ -79,4 +82,10 @@ export function loadPublicList() {
     })();
   }
   return cached;
+}
+
+/** Whether page changes (site-content.json) have been published, according to the video list in R2 */
+export async function loadManifestMeta() {
+  await loadPublicList();
+  return meta;
 }

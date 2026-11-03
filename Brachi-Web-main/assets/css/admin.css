@@ -129,3 +129,24 @@ body.is-admin { padding-bottom: 150px; }
 .adm-files li { display: grid; gap: 2px; }
 .adm-files li span { color: var(--slate); font-size: .82rem; }
 .adm-files code { justify-self: start; direction: ltr; unicode-bidi: isolate; }
+
+/* ── Editing the "אתרים" and "מערכות" rooms ── */
+body.is-admin [data-hidden-block] { display: revert !important; opacity: .38; outline: 2px dashed #B3261E; outline-offset: 4px; }
+body.is-admin tr[data-hidden-block] { display: table-row !important; }
+body.is-admin .price-table tr[data-hidden-block] { display: revert !important; }
+.ce-text { outline: 1px dashed transparent; outline-offset: 3px; border-radius: 3px; cursor: text; transition: outline-color .15s; }
+body.is-content-admin .ce-text:hover { outline-color: color-mix(in srgb, var(--accent) 55%, transparent); }
+.ce-text:focus { outline: 2px solid var(--accent); background: color-mix(in srgb, var(--accent) 7%, transparent); }
+.ce-text.ce-changed { box-shadow: inset 0 -2px 0 #F2A93B; }
+.blk-current { outline: 1.5px solid color-mix(in srgb, var(--accent) 60%, transparent); outline-offset: 6px; }
+.blk-tools {
+  position: fixed; z-index: 65; display: flex; flex-wrap: wrap; align-items: center; gap: 4px;
+  padding: 4px; border-radius: 10px; background: var(--ink); color: #ECEEE9; box-shadow: 0 10px 24px -12px rgb(0 0 0 / .6);
+  font: 500 .82rem/1 var(--f-text); max-width: calc(100vw - 16px);
+}
+.blk-tools[hidden] { display: none; }
+.blk-name { padding: 0 8px; color: #F2A93B; white-space: nowrap; }
+.blk-tools button { min-height: 32px; padding: 0 10px; border-radius: 7px; border: 1px solid rgb(236 238 233 / .25); background: transparent; color: inherit; cursor: pointer; font: inherit; white-space: nowrap; }
+.blk-tools button:hover:not(:disabled), .blk-tools button:focus-visible { background: #ECEEE9; color: var(--ink); }
+.blk-tools button:disabled { opacity: .35; cursor: default; }
+.blk-tools button[hidden] { display: none; }

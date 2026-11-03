@@ -43,9 +43,9 @@
   <h1 id="dial-title" class="dial-sentence">
     <span class="dial-lead">אני בונה</span>
     <span class="dial-words" data-dial>
-      <a class="dial-word" href="#web" data-room-link="web" aria-describedby="peek-web" data-peek="5 אתרי דמו חיים, מחירים וטופס פנייה"><span class="w-glyph"><span class="w-out">אתרים</span><span class="w-in" aria-hidden="true">אתרים</span></span><sup class="w-count" aria-hidden="true">5</sup><span class="w-peek" aria-hidden="true">5 אתרי דמו חיים, מחירים וטופס פנייה</span></a>
-      <a class="dial-word" href="#ai-video" data-room-link="ai-video" aria-describedby="peek-ai-video" data-peek="קיר סרטונים אנכיים ושלושה שירותי וידאו"><span class="w-glyph"><span class="w-out">סרטונים</span><span class="w-in" aria-hidden="true">סרטונים</span></span><sup class="w-count" aria-hidden="true" data-video-count>6</sup><span class="w-peek" aria-hidden="true">קיר סרטונים אנכיים ושלושה שירותי וידאו</span></a>
-      <a class="dial-word" href="#engineering" data-room-link="engineering" aria-describedby="peek-engineering" data-peek="3 מערכות, מאמרי עומק וקורות חיים"><span class="w-glyph"><span class="w-out">מערכות</span><span class="w-in" aria-hidden="true">מערכות</span></span><sup class="w-count" aria-hidden="true">3</sup><span class="w-peek" aria-hidden="true">3 מערכות, מאמרי עומק וקורות חיים</span></a>
+      <a class="dial-word" href="#web" data-room-link="web" aria-describedby="peek-web" data-peek="5 אתרי דמו חיים, מחירים וטופס פנייה"><span class="w-glyph"><span class="w-out">אתרים</span><span class="w-in" aria-hidden="true">אתרים</span></span><span class="w-peek" aria-hidden="true">5 אתרי דמו חיים, מחירים וטופס פנייה</span></a>
+      <a class="dial-word" href="#ai-video" data-room-link="ai-video" aria-describedby="peek-ai-video" data-peek="קיר סרטונים אנכיים ושלושה שירותי וידאו"><span class="w-glyph"><span class="w-out">סרטונים</span><span class="w-in" aria-hidden="true">סרטונים</span></span><span class="w-peek" aria-hidden="true">קיר סרטונים אנכיים ושלושה שירותי וידאו</span></a>
+      <a class="dial-word" href="#engineering" data-room-link="engineering" aria-describedby="peek-engineering" data-peek="3 מערכות, מאמרי עומק וקורות חיים"><span class="w-glyph"><span class="w-out">מערכות</span><span class="w-in" aria-hidden="true">מערכות</span></span><span class="w-peek" aria-hidden="true">3 מערכות, מאמרי עומק וקורות חיים</span></a>
       <span class="dial-rail" aria-hidden="true"><i class="dial-tick"></i><i class="dial-tick"></i><i class="dial-tick"></i></span>
       <span class="dial-thumb" aria-hidden="true"></span>
       <span class="dial-pill" aria-hidden="true"></span>
@@ -66,14 +66,14 @@
 
 <!-- ═══════════════════════ ROOM 1: WEB ═══════════════════════ -->
 <section class="room" id="room-web" data-room-panel="web" aria-labelledby="web-title">
-  <div class="wrap">
-    <div class="intro">
+  <div class="wrap" data-blocks="web">
+    <div class="intro" data-block="web-intro">
       <h2 id="web-title" tabindex="-1">כל אתר נכתב מאפס, בשביל עסק אחד</h2>
       <p>אני לא מתאימה תבנית. אני מעצבת וכותבת את הקוד בעצמי: עמודים, טפסים, כפתור וואטסאפ, SEO טכני והעלאה לאוויר. אתם מקבלים אתר שנפתח מהר בטלפון, ואת המספר שלי לכל שינוי גם אחרי ההשקה.</p>
     </div>
 
     <!-- Playground -->
-    <div class="playground" id="playground" aria-labelledby="pg-title">
+    <div class="playground" data-block="web-playground" id="playground" aria-labelledby="pg-title">
       <div class="pg-side">
         <h3 id="pg-title">בחרו סגנון ונסו אותו</h3>
         <p class="pg-hint">כל דמו הוא אתר עובד: אפשר ללחוץ, לגלול ולשחק בו.</p>
@@ -118,9 +118,9 @@
     </div>
 
     <!-- Live work -->
-    <div class="live" aria-labelledby="live-title">
+    <div class="live" data-block="web-live" data-blocks="live" aria-labelledby="live-title">
       <h3 id="live-title">אתרים שכבר באוויר</h3>
-      <article class="live-main">
+      <article class="live-main" data-block="live-yael">
         <a class="shot" href="https://www.yael-music-official.com/" target="_blank" rel="noopener" aria-label="האתר של יעל אנגל, נפתח בחלון חדש">
           <img src="/assets/img/yael-site.webp" width="800" height="375" alt="צילום מסך מהאתר של יעל אנגל: כותרת yael engl, Studio Y וכפתורי אלבום ותיק עבודות" loading="lazy" decoding="async">
         </a>
@@ -134,11 +134,11 @@
           <a class="link" href="https://www.yael-music-official.com/" target="_blank" rel="noopener">yael-music-official.com</a>
         </div>
       </article>
-      <article class="live-side">
+      <article class="live-side" data-block="live-angel">
         <h4>ANGEL Diamond Jewelry</h4>
         <p>חנות תכשיטים בעברית, בשחור וזהב. המחירים והמלאי מחושבים בשרת ובמסד הנתונים, אף פעם לא בדפדפן. ההרשאות לפאנל הניהול נאכפות ב-Supabase עם RLS, ומייל אישור יוצא פעם אחת בלבד לכל הזמנה. החנות בשלבי השקה: חיבור הסליקה הוא השלב הבא.</p>
       </article>
-      <article class="live-side">
+      <article class="live-side" data-block="live-makeup">
         <a class="shot shot-sm" href="https://boisterous-kelpie-b02abc.netlify.app/" target="_blank" rel="noopener" aria-label="תבנית Makeup Art, נפתחת בחלון חדש">
           <img src="/assets/img/makeup-art.webp" width="800" height="378" alt="תבנית Makeup Art: כותרת זהובה על רקע טקסטורה לבנה" loading="lazy" decoding="async">
         </a>
@@ -148,33 +148,33 @@
     </div>
 
     <!-- Pricing -->
-    <div class="pricing" id="pricing" aria-labelledby="price-title">
+    <div class="pricing" data-block="web-pricing" id="pricing" aria-labelledby="price-title">
       <h3 id="price-title">כמה זה עולה</h3>
       <p class="pricing-note">המחיר הסופי נקבע אחרי שיחה קצרה. כל חבילה כוללת עיצוב אישי, התאמה לנייד ו-SEO טכני.</p>
       <table class="price-table">
         <caption class="sr">חבילות ומחירים</caption>
         <thead><tr><th scope="col">חבילה</th><th scope="col">מה מקבלים</th><th scope="col">החל מ-</th></tr></thead>
-        <tbody>
-          <tr><th scope="row">דף נחיתה</th><td>עמוד אחד ממוקד, וואטסאפ וטופס פנייה, SEO בסיסי. מוכן תוך כשבוע.</td><td class="num">₪1,500</td></tr>
-          <tr><th scope="row">אתר עסקי</th><td>עד 5 עמודים, זהות ועיצוב מותאמים, גלריה או תיק עבודות, SEO מלא וחיבור לגוגל.</td><td class="num">₪2,500</td></tr>
-          <tr><th scope="row">אתר מתקדם</th><td>מערכת ניהול תוכן, חנות ותשלומים, או פיצ׳ר שבנוי במיוחד בשבילכם.</td><td class="num">₪4,000</td></tr>
+        <tbody data-blocks="prices">
+          <tr data-block="price-landing"><th scope="row">דף נחיתה</th><td>עמוד אחד ממוקד, וואטסאפ וטופס פנייה, SEO בסיסי. מוכן תוך כשבוע.</td><td class="num">₪1,500</td></tr>
+          <tr data-block="price-business"><th scope="row">אתר עסקי</th><td>עד 5 עמודים, זהות ועיצוב מותאמים, גלריה או תיק עבודות, SEO מלא וחיבור לגוגל.</td><td class="num">₪2,500</td></tr>
+          <tr data-block="price-advanced"><th scope="row">אתר מתקדם</th><td>מערכת ניהול תוכן, חנות ותשלומים, או פיצ׳ר שבנוי במיוחד בשבילכם.</td><td class="num">₪4,000</td></tr>
         </tbody>
       </table>
       <p class="pricing-note">תחזוקה חודשית (עדכונים, גיבוי ותמיכה) החל מ-₪250 לחודש.</p>
     </div>
 
     <!-- FAQ -->
-    <div class="faq" aria-labelledby="faq-title">
+    <div class="faq" data-block="web-faq" data-blocks="faq" aria-labelledby="faq-title">
       <h3 id="faq-title">שאלות שעולות בשיחה הראשונה</h3>
-      <details><summary>כמה זמן לוקח לבנות אתר?</summary><p>דף נחיתה מוכן תוך כשבוע. אתר עסקי מלא לוקח בין שבוע לשבועיים, לפי כמות התוכן והפיצ׳רים.</p></details>
-      <details><summary>מה כלול במחיר?</summary><p>עיצוב מאפס, התאמה לנייד, SEO טכני, טופס פנייה וכפתור וואטסאפ, והעלאה לאוויר. הכול מסוכם מראש, בכתב.</p></details>
-      <details><summary>אני צריכה להביא תוכן ותמונות?</summary><p>עדיף שיהיו, אבל זה לא תנאי. אני עוזרת בניסוח הטקסטים ובבחירת תמונות.</p></details>
-      <details><summary>מה קורה אחרי שהאתר עולה?</summary><p>אני זמינה לשאלות ולשינויים גם אחרי ההשקה, ויש אפשרות לתחזוקה חודשית.</p></details>
-      <details><summary>האתר יופיע בגוגל?</summary><p>כל אתר נבנה עם מבנה נכון, תגיות meta, מפת אתר וחיבור ל-Google Search Console.</p></details>
+      <details data-block="faq-1"><summary>כמה זמן לוקח לבנות אתר?</summary><p>דף נחיתה מוכן תוך כשבוע. אתר עסקי מלא לוקח בין שבוע לשבועיים, לפי כמות התוכן והפיצ׳רים.</p></details>
+      <details data-block="faq-2"><summary>מה כלול במחיר?</summary><p>עיצוב מאפס, התאמה לנייד, SEO טכני, טופס פנייה וכפתור וואטסאפ, והעלאה לאוויר. הכול מסוכם מראש, בכתב.</p></details>
+      <details data-block="faq-3"><summary>אני צריכה להביא תוכן ותמונות?</summary><p>עדיף שיהיו, אבל זה לא תנאי. אני עוזרת בניסוח הטקסטים ובבחירת תמונות.</p></details>
+      <details data-block="faq-4"><summary>מה קורה אחרי שהאתר עולה?</summary><p>אני זמינה לשאלות ולשינויים גם אחרי ההשקה, ויש אפשרות לתחזוקה חודשית.</p></details>
+      <details data-block="faq-5"><summary>האתר יופיע בגוגל?</summary><p>כל אתר נבנה עם מבנה נכון, תגיות meta, מפת אתר וחיבור ל-Google Search Console.</p></details>
     </div>
 
     <!-- Contact -->
-    <div class="contact" id="contact" aria-labelledby="contact-title">
+    <div class="contact" data-block="web-contact" id="contact" aria-labelledby="contact-title">
       <h3 id="contact-title" tabindex="-1">ספרו לי על העסק</h3>
       <p>השיחה הראשונה בחינם. תוך יום אחזור אליכם עם הצעה: איזה אתר, כמה זמן ובכמה.</p>
       <form class="form" action="https://formsubmit.co/Baloo532004@gmail.com" method="POST">
@@ -241,8 +241,8 @@
 </section>
 
 <!-- ═══════════════════════ ROOM 3: ENGINEERING ═══════════════════════ -->
-<section class="room" id="room-engineering" data-room-panel="engineering" aria-labelledby="eng-title" hidden>
-  <div class="wrap">
+<section class="room" data-blocks="eng" id="room-engineering" data-room-panel="engineering" aria-labelledby="eng-title" hidden>
+  <div class="wrap" data-block="eng-intro">
     <div class="intro eng-intro">
       <h2 id="eng-title" tabindex="-1">ברכי פיטוסי (אנגל)</h2>
       <p>אני סטודנטית שנה שלישית למדעי המחשב במכללה למינהל, אחרי שנתיים במרכז האקדמי לב. אני בונה מערכות מאפס ועד פרודקשן: מתכננת את המודל, כותבת את הבדיקות לפני הפיצ׳ר, ומתעדת את ההחלטות שלי כך שאפשר לבדוק אותן.</p>
@@ -251,7 +251,7 @@
   </div>
 
   <!-- Flagship 1 -->
-  <article class="flag" id="multi-ai" aria-labelledby="f1-title">
+  <article class="flag" data-block="flag-multi-ai" id="multi-ai" aria-labelledby="f1-title">
     <div class="wrap">
       <header class="flag-head">
         <h3 id="f1-title" class="flag-name" lang="en" dir="ltr">Multi-AI Dev Team</h3>
@@ -269,7 +269,7 @@
   </article>
 
   <!-- Flagship 2 -->
-  <article class="flag" id="benefits-wallet" aria-labelledby="f2-title">
+  <article class="flag" data-block="flag-wallet" id="benefits-wallet" aria-labelledby="f2-title">
     <div class="wrap">
       <header class="flag-head">
         <h3 id="f2-title" class="flag-name">ארנק הטבות <span lang="en" dir="ltr">Benefits Wallet</span></h3>
@@ -287,7 +287,7 @@
   </article>
 
   <!-- Flagship 3 -->
-  <article class="flag" id="assistiq" aria-labelledby="f3-title">
+  <article class="flag" data-block="flag-assistiq" id="assistiq" aria-labelledby="f3-title">
     <div class="wrap">
       <header class="flag-head">
         <h3 id="f3-title" class="flag-name" lang="en" dir="ltr">AssistIQ</h3>
@@ -305,8 +305,8 @@
   </article>
 
   <!-- CV -->
-  <div class="wrap">
-    <div class="cv" id="cv" aria-labelledby="cv-title">
+  <div class="wrap" data-block="eng-tail" data-blocks="eng-tail">
+    <div class="cv" data-block="eng-cv" id="cv" aria-labelledby="cv-title">
       <div class="cv-head">
         <h3 id="cv-title" tabindex="-1">קורות חיים</h3>
         <a class="btn btn-line" href="/cv.html?print=1" target="_blank" rel="noopener">הדפיסו קורות חיים</a>
@@ -330,11 +330,11 @@
       </ul>
 
       <h4>ניסיון</h4>
-      <ol class="timeline">
-        <li><h5>בודקת פרויקטים תכנותיים, החוג למדעי המחשב, המכללה למינהל</h5><p>בודקת פרויקטים של סטודנטים: ארכיטקטורה, מקרי קצה ואמינות. נותנת ציון ומשוב בכתב.</p></li>
-        <li><h5>מפתחת עצמאית, אתרים ומערכות</h5><p>אתרים לעסקים ויוצרים, וגם המערכות שמופיעות כאן למעלה, מאפס ועד פרודקשן.</p></li>
-        <li><h5>מייסדת ויו״ר אגודת הסטודנטים בקמפוס</h5><p>הקמתי את האגודה ועמדתי בראשה 18 חודשים.</p></li>
-        <li><h5>אנליסטית נתונים, ליאור אדיקה</h5><p>ניתוח נתונים ודוחות.</p></li>
+      <ol class="timeline" data-blocks="timeline">
+        <li data-block="tl-reviewer"><h5>בודקת פרויקטים תכנותיים, החוג למדעי המחשב, המכללה למינהל</h5><p>בודקת פרויקטים של סטודנטים: ארכיטקטורה, מקרי קצה ואמינות. נותנת ציון ומשוב בכתב.</p></li>
+        <li data-block="tl-freelance"><h5>מפתחת עצמאית, אתרים ומערכות</h5><p>אתרים לעסקים ויוצרים, וגם המערכות שמופיעות כאן למעלה, מאפס ועד פרודקשן.</p></li>
+        <li data-block="tl-union"><h5>מייסדת ויו״ר אגודת הסטודנטים בקמפוס</h5><p>הקמתי את האגודה ועמדתי בראשה 18 חודשים.</p></li>
+        <li data-block="tl-analyst"><h5>אנליסטית נתונים, ליאור אדיקה</h5><p>ניתוח נתונים ודוחות.</p></li>
       </ol>
 
       <h4>השכלה</h4>
@@ -342,16 +342,16 @@
     </div>
 
     <!-- Smaller projects -->
-    <div class="ledger" aria-labelledby="ledger-title">
+    <div class="ledger" data-block="eng-ledger" aria-labelledby="ledger-title">
       <h3 id="ledger-title">עוד דברים שבניתי</h3>
-      <ul>
-        <li><a href="https://www.yael-music-official.com/" target="_blank" rel="noopener"><span class="l-name">yael-music-official</span><span class="l-desc">אתר רשמי לזמרת, עם פאנל ניהול ב-Supabase. Next.js 16, React 19, Tailwind.</span></a></li>
-        <li><a href="https://github.com/BrachiA" target="_blank" rel="noopener"><span class="l-name">angel-diamond-jewelry</span><span class="l-desc">חנות תכשיטים ב-Next.js 16: הזמנות דרך פונקציה במסד, RLS ומיילים עם Idempotency-Key.</span></a></li>
-        <li><a href="https://github.com/BrachiA/Brachi-Web" target="_blank" rel="noopener"><span class="l-name">brachi-web</span><span class="l-desc">האתר הזה: HTML, CSS ו-JavaScript בלי פריימוורק, עם Service Worker שמשאיר את המאמרים זמינים גם בלי אינטרנט.</span></a></li>
+      <ul data-blocks="ledger">
+        <li data-block="ledger-yael"><a href="https://www.yael-music-official.com/" target="_blank" rel="noopener"><span class="l-name">yael-music-official</span><span class="l-desc">אתר רשמי לזמרת, עם פאנל ניהול ב-Supabase. Next.js 16, React 19, Tailwind.</span></a></li>
+        <li data-block="ledger-angel"><a href="https://github.com/BrachiA" target="_blank" rel="noopener"><span class="l-name">angel-diamond-jewelry</span><span class="l-desc">חנות תכשיטים ב-Next.js 16: הזמנות דרך פונקציה במסד, RLS ומיילים עם Idempotency-Key.</span></a></li>
+        <li data-block="ledger-site"><a href="https://github.com/BrachiA/Brachi-Web" target="_blank" rel="noopener"><span class="l-name">brachi-web</span><span class="l-desc">האתר הזה: HTML, CSS ו-JavaScript בלי פריימוורק, עם Service Worker שמשאיר את המאמרים זמינים גם בלי אינטרנט.</span></a></li>
       </ul>
     </div>
 
-    <div class="about-more" aria-labelledby="more-title">
+    <div class="about-more" data-block="eng-about" aria-labelledby="more-title">
       <h3 id="more-title">קצת עליי מעבר לקוד</h3>
       <p>אני אוהבת לפתוח קוד של מישהו אחר ולהבין למה הוא עובד, ולמה לפעמים לא. מכאן הגיעה בדיקת הפרויקטים בחוג, ומכאן גם ההרגל שלי לכתוב ביומן החלטות למה בחרתי בכל פתרון. באגודת הסטודנטים למדתי שמערכת טובה היא כזו שאנשים מבינים בלי שאסביר להם.</p>
       <p class="contacts">
